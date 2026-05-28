@@ -46,7 +46,13 @@ export function LoginPage() {
   const handleResetAccount = async () => {
     if (!window.confirm(t('forgotAccountConfirm', language))) return
     try {
-      const res = await fetch('/api/reset-account', { method: 'POST' })
+      const res = await fetch('/api/reset-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // Server-side guard against accidental/drive-by triggers.
+        // Phrase must match handler_user.go resetAccountConfirmPhrase.
+        body: JSON.stringify({ confirm: 'I_UNDERSTAND_THIS_DELETES_EVERYTHING' }),
+      })
       if (res.ok) {
         localStorage.removeItem('auth_token')
         localStorage.removeItem('auth_user')
