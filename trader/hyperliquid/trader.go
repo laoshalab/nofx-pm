@@ -133,15 +133,21 @@ func NewHyperliquidTrader(privateKeyHex string, walletAddr string, testnet bool,
 
 	ctx := context.Background()
 
-	// Create Exchange client (Exchange includes Info functionality)
+	// Create Exchange client (Exchange includes Info functionality).
+	// v0.36 signature: ctx, privateKey, baseURL, meta, vaultAddr, accountAddr,
+	// spotMeta, perpDexs, ...opts. nil values are auto-fetched on first use.
+	// v0.36 fixed the spot-meta indexing panic that crashed earlier versions
+	// when Hyperliquid added new spot tokens whose Tokens[0] index pointed
+	// past the Tokens array end.
 	exchange := hyperliquid.NewExchange(
 		ctx,
 		privateKey,
 		apiURL,
-		nil,        // Meta will be fetched automatically
+		nil,        // Meta — fetched automatically
 		"",         // vault address (empty for personal account)
 		walletAddr, // wallet address
-		nil,        // SpotMeta will be fetched automatically
+		nil,        // SpotMeta — fetched automatically
+		nil,        // perpDexs — fetched automatically
 	)
 
 	logger.Infof("✓ Hyperliquid trader initialized successfully (testnet=%v, wallet=%s)", testnet, walletAddr)
