@@ -154,12 +154,15 @@ func TestRebuildPositionsFromTrades_PartialClose(t *testing.T) {
 	if !floatsClose(records[0].Fee, 0.3) {
 		t.Errorf("records[0].Fee = %v, want 0.3", records[0].Fee)
 	}
-	// NOTE: documents current behavior. The open trade's Fee field is not
-	// reduced when partially consumed, so the second close re-attributes the
-	// full remaining ratio of the original fee: 0.1 + 0.4*(1/1) = 0.5.
-	// Total attributed entry fee across both closes is 0.6 > 0.4 actually paid.
-	if !floatsClose(records[1].Fee, 0.5) {
-		t.Errorf("records[1].Fee = %v, want 0.5 (current over-attribution behavior)", records[1].Fee)
+	// Second partial close consumes the remaining half of the open trade:
+	// exit fee 0.1 + remaining entry fee 0.2 = 0.3. Total entry fee attributed
+	// across both closes must equal the 0.4 actually paid.
+	if !floatsClose(records[1].Fee, 0.3) {
+		t.Errorf("records[1].Fee = %v, want 0.3", records[1].Fee)
+	}
+	totalEntryFee := records[0].Fee + records[1].Fee - 0.2 // subtract the two exit fees
+	if !floatsClose(totalEntryFee, 0.4) {
+		t.Errorf("total attributed entry fee = %v, want 0.4 (fee actually paid)", totalEntryFee)
 	}
 }
 

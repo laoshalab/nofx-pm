@@ -143,7 +143,11 @@ func buildClosedPosition(trade TradeRecord, side string, state *positionState) *
 
 			weightedSum += ot.Price * matchQty
 			matchedQty += matchQty
-			totalEntryFee += ot.Fee * (matchQty / ot.Quantity)
+			// Attribute the entry fee proportionally and deduct the consumed
+			// portion from the open trade, so a later partial close cannot
+			// re-attribute fee that was already counted.
+			feePortion := ot.Fee * (matchQty / ot.Quantity)
+			totalEntryFee += feePortion
 
 			if entryTime.IsZero() {
 				entryTime = ot.Time
@@ -151,6 +155,7 @@ func buildClosedPosition(trade TradeRecord, side string, state *positionState) *
 
 			remainingQty -= matchQty
 			ot.Quantity -= matchQty
+			ot.Fee -= feePortion
 
 			// Remove fully consumed open trade
 			if ot.Quantity <= dustQuantityEpsilon {
