@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	"nofx/mcp"
+	"nofx/store"
 )
 
 // scriptedAIClient returns queued LLMResponses (or errors) in order for
@@ -248,6 +250,45 @@ func TestRunAgenticTurnIncludesRecentHistory(t *testing.T) {
 	if !sawPrevUser || !sawPrevAssistant {
 		t.Fatalf("recent history missing from request: user=%v assistant=%v", sawPrevUser, sawPrevAssistant)
 	}
+}
+
+func TestShouldUseAgenticTurn(t *testing.T) {
+	t.Setenv("NOFX_AGENT_V2", "")
+
+	a := newAgenticTestAgent(&scriptedAIClient{})
+	if !a.shouldUseAgenticTurn(10) {
+		t.Fatal("fresh conversation with AI client should use the agentic turn")
+	}
+
+	t.Run("disabled by env", func(t *testing.T) {
+		t.Setenv("NOFX_AGENT_V2", "off")
+		if a.shouldUseAgenticTurn(10) {
+			t.Fatal("env kill switch must disable the agentic turn")
+		}
+	})
+
+	t.Run("no AI client", func(t *testing.T) {
+		noAI := New(nil, nil, DefaultConfig(), slog.Default())
+		if noAI.shouldUseAgenticTurn(10) {
+			t.Fatal("agentic turn requires an AI client")
+		}
+	})
+
+	t.Run("active legacy session stays on legacy stack", func(t *testing.T) {
+		st, err := store.New(filepath.Join(t.TempDir(), "agentic-guard.db"))
+		if err != nil {
+			t.Fatalf("create store: %v", err)
+		}
+		b := New(nil, st, DefaultConfig(), slog.Default())
+		b.SetAIClient(&scriptedAIClient{})
+		if !b.shouldUseAgenticTurn(11) {
+			t.Fatal("fresh conversation should use the agentic turn")
+		}
+		b.saveActiveSkillSession(newActiveSkillSession(11, "strategy_management", "create"))
+		if b.shouldUseAgenticTurn(11) {
+			t.Fatal("active skill session must stay on the legacy stack")
+		}
+	})
 }
 
 func TestAgentV2Enabled(t *testing.T) {

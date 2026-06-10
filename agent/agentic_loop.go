@@ -32,6 +32,23 @@ func agentV2Enabled() bool {
 	return true
 }
 
+// shouldUseAgenticTurn reports whether this turn should go through the native
+// function-calling loop. In-flight legacy flows (skill sessions, workflows,
+// execution states, pending proposals) stay on the legacy stack so they finish
+// with the state machine that started them.
+func (a *Agent) shouldUseAgenticTurn(userID int64) bool {
+	if a.aiClient == nil || !agentV2Enabled() {
+		return false
+	}
+	if a.hasAnyActiveContext(userID) {
+		return false
+	}
+	if _, ok := a.getPendingProposalSession(userID); ok {
+		return false
+	}
+	return true
+}
+
 // runAgenticTurn drives one user turn through a native function-calling loop:
 // the LLM sees the full toolset plus recent conversation, decides which tools
 // to call, receives every tool result (including errors) as observations, and
