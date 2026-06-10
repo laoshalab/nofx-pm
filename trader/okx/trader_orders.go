@@ -12,7 +12,9 @@ import (
 // OpenLong opens long position
 func (t *OKXTrader) OpenLong(symbol string, quantity float64, leverage int) (map[string]interface{}, error) {
 	// Cancel old orders
-	t.CancelAllOrders(symbol)
+	if err := t.CancelAllOrders(symbol); err != nil {
+		logger.Infof("  ⚠ Failed to cancel old pending orders (may not have any): %v", err)
+	}
 
 	// Set leverage
 	if err := t.SetLeverage(symbol, leverage); err != nil {
@@ -91,7 +93,9 @@ func (t *OKXTrader) OpenLong(symbol string, quantity float64, leverage int) (map
 // OpenShort opens short position
 func (t *OKXTrader) OpenShort(symbol string, quantity float64, leverage int) (map[string]interface{}, error) {
 	// Cancel old orders
-	t.CancelAllOrders(symbol)
+	if err := t.CancelAllOrders(symbol); err != nil {
+		logger.Infof("  ⚠ Failed to cancel old pending orders (may not have any): %v", err)
+	}
 
 	// Set leverage
 	if err := t.SetLeverage(symbol, leverage); err != nil {
@@ -269,7 +273,9 @@ func (t *OKXTrader) CloseLong(symbol string, quantity float64) (map[string]inter
 	logger.Infof("✓ OKX closed long position successfully: %s", symbol)
 
 	// Cancel pending orders after closing position
-	t.CancelAllOrders(symbol)
+	if err := t.CancelAllOrders(symbol); err != nil {
+		logger.Infof("  ⚠ Failed to cancel pending orders: %v", err)
+	}
 
 	return map[string]interface{}{
 		"orderId": orders[0].OrdId,
@@ -383,7 +389,9 @@ func (t *OKXTrader) CloseShort(symbol string, quantity float64) (map[string]inte
 	logger.Infof("✓ OKX closed short position successfully: %s, ordId=%s", symbol, orders[0].OrdId)
 
 	// Cancel pending orders after closing position
-	t.CancelAllOrders(symbol)
+	if err := t.CancelAllOrders(symbol); err != nil {
+		logger.Infof("  ⚠ Failed to cancel pending orders: %v", err)
+	}
 
 	return map[string]interface{}{
 		"orderId": orders[0].OrdId,
