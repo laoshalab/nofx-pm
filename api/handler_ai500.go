@@ -33,11 +33,11 @@ func (s *Server) handleAI500List(c *gin.Context) {
 		return
 	}
 
+	// Flat body, matching /api/symbols: the web httpClient wraps the raw
+	// response body as `data`, so a nested success/data envelope here would
+	// hide the coins from the panel.
 	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data": gin.H{
-			"coins": entries,
-			"count": len(entries),
-		},
+		"coins": entries,
+		"count": len(entries),
 	})
 }

@@ -113,7 +113,7 @@ func (a *Agent) toolGetAI500List(storeUserID, argsJSON string) string {
 		"status": "ok",
 		"count":  len(entries),
 		"coins":  entries,
-		"note":   "AI500 is an AI-scored crypto index; score is 0-100, increase_percent is the gain since the coin entered the index.",
+		"note":   "AI500 is an AI-scored crypto index; score is 0-100, increase_percent is the gain since the coin entered the index. Present this in chat as a short numbered list, one coin per line, e.g. \"1. BEAT — 评分 84.2，入选以来 +404.1%\". NEVER use a markdown table — the chat UI does not render tables.",
 	})
 	if err != nil {
 		return fmt.Sprintf(`{"error":"failed to serialize AI500 list: %s"}`, err)
