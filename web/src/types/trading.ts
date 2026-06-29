@@ -124,6 +124,17 @@ export interface CompetitionTraderData {
 export interface CompetitionData {
   traders: CompetitionTraderData[]
   count: number
+  total_count?: number
+}
+
+export interface PredictionCompetitionTraderData extends CompetitionTraderData {
+  trading_mode?: 'simulation' | 'preview' | 'live'
+}
+
+export interface PredictionCompetitionData {
+  traders: PredictionCompetitionTraderData[]
+  count: number
+  total_count?: number
 }
 
 // Trader Configuration Data for View Modal

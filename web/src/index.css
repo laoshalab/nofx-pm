@@ -289,7 +289,7 @@ body {
 }
 
 .nofx-toast {
-  background: #0b0e11 !important;
+  background: var(--panel-bg) !important;
   border: 1px solid var(--panel-border) !important;
   color: var(--text-primary) !important;
   box-shadow: var(--shadow-lg) !important;
@@ -958,4 +958,107 @@ tr:hover {
       rgba(240, 185, 11, 0.1) 360deg);
   mix-blend-mode: overlay;
   background-blend-mode: overlay, normal;
+}
+
+/* ── Light theme ── */
+[data-theme='light'] {
+  color-scheme: light;
+
+  --background: #f4f6f9;
+  --header-bg: rgba(255, 255, 255, 0.94);
+  --glass-border: rgba(15, 23, 42, 0.08);
+  --glass-bg: rgba(255, 255, 255, 0.72);
+
+  --panel-bg: #ffffff;
+  --panel-bg-hover: #f8fafc;
+  --panel-border: #e2e8f0;
+  --panel-border-hover: rgba(240, 185, 11, 0.45);
+
+  --foreground: #1e2329;
+  --text-primary: #1e2329;
+  --text-secondary: #5e6673;
+  --text-tertiary: #848e9c;
+  --text-disabled: #b7bdc6;
+
+  --nofx-glass: rgba(255, 255, 255, 0.88);
+  --nofx-border: rgba(240, 185, 11, 0.28);
+
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.1);
+  --shadow-glow: 0 0 24px rgba(240, 185, 11, 0.12);
+}
+
+.deep-void-static-bg-dark {
+  background:
+    radial-gradient(circle at top, rgba(240, 185, 11, 0.08), transparent 38%),
+    linear-gradient(180deg, rgba(12, 14, 20, 0.98), rgba(8, 10, 15, 1));
+}
+
+.deep-void-static-bg-light {
+  background:
+    radial-gradient(circle at top, rgba(240, 185, 11, 0.12), transparent 42%),
+    linear-gradient(180deg, #f8fafc, #eef2f7);
+}
+
+[data-theme='light'] .bg-black\/40 {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+}
+
+[data-theme='light'] .border-white\/10 {
+  border-color: #e2e8f0 !important;
+}
+
+[data-theme='light'] .border-white\/20 {
+  border-color: #cbd5e1 !important;
+}
+
+[data-theme='light'] .bg-zinc-900\/50,
+[data-theme='light'] .bg-zinc-900\/80 {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+}
+
+[data-theme='light'] .bg-zinc-950\/40,
+[data-theme='light'] .bg-zinc-950\/80,
+[data-theme='light'] .bg-zinc-950 {
+  background-color: #f1f5f9 !important;
+}
+
+[data-theme='light'] .bg-zinc-800,
+[data-theme='light'] .bg-zinc-900 {
+  background-color: #ffffff !important;
+}
+
+[data-theme='light'] .border-zinc-700,
+[data-theme='light'] .border-zinc-800 {
+  border-color: #e2e8f0 !important;
+}
+
+[data-theme='light'] main h1.text-white,
+[data-theme='light'] main h2.text-white,
+[data-theme='light'] main h3.text-white,
+[data-theme='light'] section h2.text-white {
+  color: var(--text-primary);
+}
+
+[data-theme='light'] .text-zinc-300,
+[data-theme='light'] .text-zinc-400,
+[data-theme='light'] .text-zinc-500 {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme='light'] input.bg-zinc-800,
+[data-theme='light'] select.bg-zinc-800,
+[data-theme='light'] textarea.bg-zinc-800 {
+  background-color: #ffffff !important;
+  color: var(--text-primary) !important;
+  border-color: #d1d5db !important;
+}
+
+[data-theme='light'] .hover\:bg-white\/5:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme='light'] .fixed.bg-black\/90 {
+  background-color: rgba(255, 255, 255, 0.96) !important;
 }

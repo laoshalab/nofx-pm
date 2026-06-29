@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Trophy } from 'lucide-react'
 import useSWR from 'swr'
 import { api } from '../../lib/api'
-import type { CompetitionData } from '../../types'
+import { predictionApi } from '../../lib/api/prediction'
+import type { CompetitionData, CompetitionTraderData, PredictionCompetitionData } from '../../types'
 import { ComparisonChart } from '../charts/ComparisonChart'
 import { TraderConfigViewModal } from './TraderConfigViewModal'
 import { getTraderColor } from '../../utils/traderColors'
@@ -10,23 +12,44 @@ import { useLanguage } from '../../contexts/LanguageContext'
 import { t } from '../../i18n/translations'
 import { PunkAvatar, getTraderAvatar } from '../common/PunkAvatar'
 import { DeepVoidBackground } from '../common/DeepVoidBackground'
+import { tradingModeLabel } from '../prediction/utils'
+import { ROUTES } from '../../router/paths'
+
+type CompetitionTab = 'crypto' | 'prediction'
 
 export function CompetitionPage() {
   const { language } = useLanguage()
+  const navigate = useNavigate()
+  const [tab, setTab] = useState<CompetitionTab>('prediction')
   const [selectedTrader, setSelectedTrader] = useState<any>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  const { data: competition } = useSWR<CompetitionData>(
+  const swrOpts = {
+    refreshInterval: 15000,
+    revalidateOnFocus: false,
+    dedupingInterval: 10000,
+  }
+
+  const { data: cryptoCompetition } = useSWR<CompetitionData>(
     'competition',
     api.getCompetition,
-    {
-      refreshInterval: 15000, // 15秒刷新（竞赛数据不需要太频繁更新）
-      revalidateOnFocus: false,
-      dedupingInterval: 10000,
-    }
+    swrOpts
   )
 
+  const { data: predictionCompetition } = useSWR<PredictionCompetitionData>(
+    'prediction-competition',
+    predictionApi.getCompetition,
+    swrOpts
+  )
+
+  const isPredictionTab = tab === 'prediction'
+  const competition = isPredictionTab ? predictionCompetition : cryptoCompetition
+
   const handleTraderClick = async (traderId: string) => {
+    if (isPredictionTab) {
+      navigate(ROUTES.prediction)
+      return
+    }
     try {
       const traderConfig = await api.getPublicTraderConfig(traderId)
       setSelectedTrader(traderConfig)
@@ -43,10 +66,43 @@ export function CompetitionPage() {
     setSelectedTrader(null)
   }
 
+  const formatTraderSubtitle = (trader: CompetitionTraderData) => {
+    if (isPredictionTab) {
+      const mode = (trader as PredictionCompetitionData['traders'][number]).trading_mode ?? 'simulation'
+      return `${trader.ai_model.toUpperCase()} · ${tradingModeLabel(mode, mode === 'preview')} · ${(trader.exchange || 'polymarket').toUpperCase()}`
+    }
+    return `${trader.ai_model.toUpperCase()} + ${trader.exchange.toUpperCase()}`
+  }
+
+  const tabBar = (
+    <div className="flex gap-2 mb-6">
+      {(['crypto', 'prediction'] as CompetitionTab[]).map((key) => {
+        const active = tab === key
+        return (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors border ${
+              active
+                ? 'bg-nofx-gold/15 text-nofx-gold border-nofx-gold/40'
+                : 'bg-black/40 text-zinc-400 border-white/10 hover:border-white/20 hover:text-zinc-200'
+            }`}
+          >
+            {key === 'crypto'
+              ? t('competitionTabCrypto', language)
+              : t('competitionTabPrediction', language)}
+          </button>
+        )
+      })}
+    </div>
+  )
+
   if (!competition) {
     return (
       <DeepVoidBackground className="py-8" disableAnimation>
         <div className="container mx-auto max-w-7xl px-4 md:px-8">
+          {tabBar}
           <div className="space-y-6">
             <div className="animate-pulse bg-black/40 border border-white/10 rounded-xl p-8 backdrop-blur-md">
               <div className="flex items-center justify-between mb-6">
@@ -75,6 +131,7 @@ export function CompetitionPage() {
     return (
       <DeepVoidBackground className="py-8" disableAnimation>
         <div className="container mx-auto max-w-7xl px-4 md:px-8 space-y-8 animate-fade-in">
+          {tabBar}
           {/* Competition Header - 精简版 */}
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-0">
             <div className="flex items-center gap-3 md:gap-4">
@@ -112,7 +169,9 @@ export function CompetitionPage() {
               {t('noTraders', language)}
             </h3>
             <p className="text-sm text-zinc-400">
-              {t('createFirstTrader', language)}
+              {isPredictionTab
+                ? t('predictionCompetitionEmpty', language)
+                : t('createFirstTrader', language)}
             </p>
           </div>
         </div>
@@ -131,6 +190,7 @@ export function CompetitionPage() {
   return (
     <DeepVoidBackground className="py-8" disableAnimation>
       <div className="w-full px-4 md:px-8 space-y-8 animate-fade-in">
+        {tabBar}
         {/* Competition Header - 精简版 */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-0">
           <div className="flex items-center gap-3 md:gap-4">
@@ -153,7 +213,9 @@ export function CompetitionPage() {
                 </span>
               </h1>
               <p className="text-xs text-zinc-400">
-                {t('liveBattle', language)}
+                {isPredictionTab
+                  ? t('predictionCompetitionSubtitle', language)
+                  : t('liveBattle', language)}
               </p>
             </div>
           </div>
@@ -195,7 +257,12 @@ export function CompetitionPage() {
                 {t('realTimePnL', language)}
               </div>
             </div>
-            <ComparisonChart traders={sortedTraders.slice(0, 10)} />
+            <ComparisonChart
+              traders={sortedTraders.slice(0, 10)}
+              fetchEquityHistoryBatch={
+                isPredictionTab ? predictionApi.getEquityHistoryBatch : undefined
+              }
+            />
           </div>
 
           {/* Right: Leaderboard */}
@@ -274,8 +341,7 @@ export function CompetitionPage() {
                             className="text-xs mono font-semibold"
                             style={{ color: traderColor }}
                           >
-                            {trader.ai_model.toUpperCase()} +{' '}
-                            {trader.exchange.toUpperCase()}
+                            {formatTraderSubtitle(trader)}
                           </div>
                         </div>
                       </div>
@@ -366,7 +432,7 @@ export function CompetitionPage() {
         </div>
 
         {/* Head-to-Head Stats */}
-        {competition.traders.length === 2 && (
+        {!isPredictionTab && competition.traders.length === 2 && (
           <div
             className="bg-black/40 border border-white/10 rounded-xl p-6 backdrop-blur-md animate-slide-in"
             style={{ animationDelay: '0.3s' }}
@@ -474,12 +540,13 @@ export function CompetitionPage() {
           </div>
         )}
 
-        {/* Trader Config View Modal */}
-        <TraderConfigViewModal
-          isOpen={isModalOpen}
-          onClose={closeModal}
-          traderData={selectedTrader}
-        />
+        {!isPredictionTab && (
+          <TraderConfigViewModal
+            isOpen={isModalOpen}
+            onClose={closeModal}
+            traderData={selectedTrader}
+          />
+        )}
       </div>
     </DeepVoidBackground>
   )

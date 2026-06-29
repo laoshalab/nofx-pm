@@ -53,6 +53,9 @@ type Config struct {
 	AlpacaSecretKey string // Alpaca secret key
 	TwelveDataKey   string // TwelveData API key for forex & metals
 
+	// Prediction market safety (default off — enable explicitly for live trading)
+	PredictionLiveEnabled            bool // PREDICTION_LIVE_ENABLED
+	PredictionAllowBrowserPrivateKey bool // PREDICTION_ALLOW_BROWSER_PRIVATE_KEY
 }
 
 // MustInit initializes global configuration or panics. Use from main() so the
@@ -123,6 +126,9 @@ func initConfig() error {
 	cfg.AlpacaSecretKey = os.Getenv("ALPACA_SECRET_KEY")
 	cfg.TwelveDataKey = os.Getenv("TWELVEDATA_API_KEY")
 
+	cfg.PredictionLiveEnabled = strings.EqualFold(os.Getenv("PREDICTION_LIVE_ENABLED"), "true")
+	cfg.PredictionAllowBrowserPrivateKey = strings.EqualFold(os.Getenv("PREDICTION_ALLOW_BROWSER_PRIVATE_KEY"), "true")
+
 	// Database configuration
 	if v := os.Getenv("DB_TYPE"); v != "" {
 		cfg.DBType = strings.ToLower(v)
@@ -175,4 +181,11 @@ func Get() *Config {
 		Init()
 	}
 	return global
+}
+
+// SetGlobalForTest replaces the global config for tests and returns a restore func.
+func SetGlobalForTest(cfg *Config) func() {
+	prev := global
+	global = cfg
+	return func() { global = prev }
 }

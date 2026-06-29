@@ -99,3 +99,33 @@ func rateLimitMiddleware(l *ipRateLimiter) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// userRateLimitGuard throttles per authenticated user; use with chainMiddleware.
+func userRateLimitGuard(l *ipRateLimiter) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		key := c.GetString("user_id")
+		if key == "" {
+			key = c.ClientIP()
+		} else {
+			key = key + ":" + c.ClientIP()
+		}
+		if !l.allow(key, time.Now()) {
+			c.Header("Retry-After", "30")
+			c.JSON(http.StatusTooManyRequests, gin.H{
+				"error": "Too many prediction actions. Please wait before trying again.",
+			})
+			c.Abort()
+		}
+	}
+}
+
+// chainMiddleware runs guard then handler (compatible with s.route registration).
+func chainMiddleware(guard gin.HandlerFunc, h gin.HandlerFunc) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		guard(c)
+		if c.IsAborted() {
+			return
+		}
+		h(c)
+	}
+}

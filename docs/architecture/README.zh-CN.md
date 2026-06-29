@@ -57,6 +57,7 @@ NOFX 是一个支持加密货币和美股市场的全栈 AI 交易平台：
 | 模块 | 描述 | 文档 |
 |------|------|------|
 | **策略工作室** | 策略配置、币种选择、数据组装、AI 提示词 | [STRATEGY_MODULE.md](STRATEGY_MODULE.md) |
+| **预测市场（本分支）** | Polymarket 平台层、PredictionVenue、M0 CLI | [PREDICTION_MODULE.md](PREDICTION_MODULE.md) |
 
 ### 模块概览
 

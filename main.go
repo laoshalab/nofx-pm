@@ -108,10 +108,14 @@ func main() {
 
 	// Create TraderManager
 	traderManager := manager.NewTraderManager()
+	predictionManager := manager.NewPredictionManager()
 
 	// Load all traders from database to memory (may auto-start traders with IsRunning=true)
 	if err := traderManager.LoadTradersFromStore(st); err != nil {
 		logger.Fatalf("❌ Failed to load traders: %v", err)
+	}
+	if err := predictionManager.LoadTradersFromStore(st); err != nil {
+		logger.Warnf("⚠️ Failed to load prediction traders: %v", err)
 	}
 
 	// Display loaded trader information
@@ -139,7 +143,7 @@ func main() {
 	}
 
 	// Start API server
-	server := api.NewServer(traderManager, st, cryptoService, cfg.APIServerPort)
+	server := api.NewServer(traderManager, predictionManager, st, cryptoService, cfg.APIServerPort)
 
 	// Create hot-reload channel for Telegram bot; wire it to the API server
 	// so that POST /api/telegram can trigger a bot restart when the token changes.

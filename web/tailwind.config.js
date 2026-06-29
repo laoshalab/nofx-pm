@@ -14,15 +14,15 @@ export default {
           highlight: '#FFD700',
         },
         'nofx-bg': {
-          DEFAULT: '#0B0E11', // Deep Void
-          deeper: '#050709',  // Abyssal
-          lighter: '#0E1217', // Surface
+          DEFAULT: 'var(--background)',
+          deeper: 'var(--background)',
+          lighter: 'var(--panel-bg)',
         },
         'nofx-accent': '#00F0FF', // Cyan Cyber
         'nofx-text': {
-          DEFAULT: '#EAECEF',
-          main: '#EAECEF',
-          muted: '#848E9C',
+          DEFAULT: 'var(--foreground)',
+          main: 'var(--text-primary)',
+          muted: 'var(--text-secondary)',
         },
         'nofx-success': '#0ECB81',
         'nofx-danger': '#F6465D',

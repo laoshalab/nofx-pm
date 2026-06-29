@@ -30,6 +30,7 @@ type Store struct {
 	grid           *GridStore
 	aiCharge       *AIChargeStore
 	telegramConfig TelegramConfigStore
+	prediction     *PredictionStore
 
 	mu sync.RWMutex
 }
@@ -163,6 +164,9 @@ func (s *Store) initTables() error {
 	}
 	if err := s.AICharge().initTables(); err != nil {
 		return fmt.Errorf("failed to initialize AI charge tables: %w", err)
+	}
+	if err := s.Prediction().initTables(); err != nil {
+		return fmt.Errorf("failed to initialize prediction tables: %w", err)
 	}
 	return nil
 }
@@ -305,6 +309,16 @@ func (s *Store) TelegramConfig() TelegramConfigStore {
 		s.telegramConfig = NewTelegramConfigStore(s.gdb)
 	}
 	return s.telegramConfig
+}
+
+// Prediction gets prediction-market trader storage.
+func (s *Store) Prediction() *PredictionStore {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.prediction == nil {
+		s.prediction = NewPredictionStore(s.gdb)
+	}
+	return s.prediction
 }
 
 // Close closes database connection

@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTheme } from '../../contexts/ThemeContext'
 
 interface DeepVoidBackgroundProps extends React.HTMLAttributes<HTMLDivElement> {
     children?: React.ReactNode
@@ -7,13 +8,20 @@ interface DeepVoidBackgroundProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export function DeepVoidBackground({ children, className = '', disableAnimation = false, ...props }: DeepVoidBackgroundProps) {
+    const { theme } = useTheme()
+    const isLight = theme === 'light'
+
     return (
         <div className={`relative w-full min-h-screen bg-nofx-bg text-nofx-text overflow-hidden flex flex-col ${className}`} {...props}>
             {/* Background layers: use a much lighter static stack when animations are disabled */}
             {disableAnimation ? (
                 <>
-                    <div className="absolute inset-0 pointer-events-none z-0 bg-[radial-gradient(circle_at_top,rgba(240,185,11,0.08),transparent_38%),linear-gradient(180deg,rgba(12,14,20,0.98),rgba(8,10,15,1))]"></div>
-                    <div className="absolute inset-0 pointer-events-none z-0 opacity-[0.035] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:36px_36px]"></div>
+                    <div
+                        className={`absolute inset-0 pointer-events-none z-0 ${
+                            isLight ? 'deep-void-static-bg-light' : 'deep-void-static-bg-dark'
+                        }`}
+                    />
+                    <div className="absolute inset-0 pointer-events-none z-0 opacity-[0.035] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:36px_36px]" />
                 </>
             ) : (
                 <>

@@ -1,6 +1,9 @@
 export interface SystemConfig {
   initialized: boolean
   beta_mode?: boolean
+  prediction_live_enabled?: boolean
+  prediction_live_redeem_enabled?: boolean
+  prediction_allow_browser_private_key?: boolean
 }
 
 let configPromise: Promise<SystemConfig> | null = null

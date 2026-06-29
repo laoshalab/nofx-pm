@@ -21,6 +21,7 @@ import (
 type Server struct {
 	router                    *gin.Engine
 	traderManager             *manager.TraderManager
+	predictionManager         *manager.PredictionManager
 	store                     *store.Store
 	cryptoHandler             *CryptoHandler
 	exchangeAccountStateCache *ExchangeAccountStateCache
@@ -28,10 +29,12 @@ type Server struct {
 	port                      int
 	telegramReloadCh          chan<- struct{} // signal Telegram bot to reload
 	authLimiter               *ipRateLimiter  // per-IP throttle for login/register
+	predictionActionLimiter   *ipRateLimiter  // per-user throttle for start/run-once
+	predictionMarketsLimiter  *ipRateLimiter  // per-IP throttle for public market search
 }
 
 // NewServer Creates API server
-func NewServer(traderManager *manager.TraderManager, st *store.Store, cryptoService *crypto.CryptoService, port int) *Server {
+func NewServer(traderManager *manager.TraderManager, predictionManager *manager.PredictionManager, st *store.Store, cryptoService *crypto.CryptoService, port int) *Server {
 	// Set to Release mode (reduce log output)
 	gin.SetMode(gin.ReleaseMode)
 
@@ -46,6 +49,7 @@ func NewServer(traderManager *manager.TraderManager, st *store.Store, cryptoServ
 	s := &Server{
 		router:                    router,
 		traderManager:             traderManager,
+		predictionManager:         predictionManager,
 		store:                     st,
 		cryptoHandler:             cryptoHandler,
 		exchangeAccountStateCache: NewExchangeAccountStateCache(),
@@ -54,6 +58,10 @@ func NewServer(traderManager *manager.TraderManager, st *store.Store, cryptoServ
 		// attempt every 6s (10/min) sustained per IP. Generous for a human,
 		// hostile to online password brute-force.
 		authLimiter: newIPRateLimiter(1.0/6.0, 8),
+		// Prediction start/run-once: ~1 action every 5s sustained, burst 2 per user.
+		predictionActionLimiter: newIPRateLimiter(0.2, 2),
+		// Public Polymarket market search: burst 10, ~1 req/s sustained per IP.
+		predictionMarketsLimiter: newIPRateLimiter(1.0, 10),
 	}
 
 	// Setup routes
@@ -166,6 +174,8 @@ func (s *Server) setupRoutes() {
 		// Public competition data (no authentication required)
 		s.route(api, "GET", "/traders", "Public trader list", s.handlePublicTraderList)
 		s.route(api, "GET", "/competition", "Public competition data", s.handlePublicCompetition)
+		s.route(api, "GET", "/prediction/competition", "Public prediction-market competition data", s.handlePublicPredictionCompetition)
+		s.route(api, "POST", "/prediction/equity-history-batch", "Batch prediction sim equity history", s.handlePredictionEquityHistoryBatch)
 		s.route(api, "GET", "/top-traders", "Top traders leaderboard", s.handleTopTraders)
 		s.route(api, "GET", "/equity-history", "Equity history for a trader", s.handleEquityHistory)
 		s.route(api, "POST", "/equity-history-batch", "Batch equity history for multiple traders", s.handleEquityHistoryBatch)
@@ -178,6 +188,11 @@ func (s *Server) setupRoutes() {
 		// Public strategy market (no authentication required)
 		s.route(api, "GET", "/strategies/public", "Public strategy market", s.handlePublicStrategies)
 		s.route(api, "POST", "/strategies/estimate-tokens", "Estimate token usage for a strategy config", s.handleEstimateTokens)
+
+		// Polymarket / prediction market discovery (public read, rate limited)
+		marketRoutes := api.Group("/", rateLimitMiddleware(s.predictionMarketsLimiter))
+		s.route(marketRoutes, "GET", "/prediction/markets", "Search Polymarket markets (?tag=&keyword=&limit=&with_mids=true)", s.handlePredictionMarketSearch)
+		s.route(marketRoutes, "GET", "/prediction/markets/:slug", "Polymarket market detail with mids", s.handlePredictionMarketDetail)
 
 		// Authentication related routes (no authentication required).
 		// These are throttled per-IP to blunt online password brute-force; see
@@ -259,6 +274,31 @@ Body: {"show_in_competition":<bool>}`,
 			s.routeWithSchema(protected, "GET", "/traders/:id/grid-risk", "Get grid trading risk info",
 				`:id = trader_id from GET /api/my-traders.`,
 				s.handleGetGridRiskInfo)
+
+			// Prediction market traders (Polymarket)
+			s.route(protected, "GET", "/prediction/traders", "List prediction traders", s.handlePredictionTraderList)
+			s.route(protected, "GET", "/prediction/traders/:id", "Get prediction trader detail", s.handleGetPredictionTrader)
+			s.route(protected, "POST", "/prediction/traders", "Create prediction trader", s.handleCreatePredictionTrader)
+			s.route(protected, "PUT", "/prediction/traders/:id", "Update prediction trader", s.handleUpdatePredictionTrader)
+			s.routeWithSchema(protected, "PUT", "/prediction/traders/:id/competition", "Toggle prediction trader competition visibility",
+				`Body: {"show_in_competition":<bool>}`,
+				s.handlePredictionShowInCompetition)
+			s.route(protected, "DELETE", "/prediction/traders/:id", "Delete prediction trader", s.handleDeletePredictionTrader)
+			s.route(protected, "POST", "/prediction/traders/:id/start", "Start prediction trader loop", chainMiddleware(userRateLimitGuard(s.predictionActionLimiter), s.handleStartPredictionTrader))
+			s.route(protected, "POST", "/prediction/traders/:id/stop", "Stop prediction trader loop", s.handleStopPredictionTrader)
+			s.route(protected, "POST", "/prediction/traders/:id/run-once", "Run one prediction AI cycle", chainMiddleware(userRateLimitGuard(s.predictionActionLimiter), s.handlePredictionRunOnce))
+			s.route(protected, "GET", "/prediction/traders/:id/decisions", "Prediction decision history", s.handlePredictionDecisions)
+			s.route(protected, "GET", "/prediction/traders/:id/positions", "Prediction YES/NO positions", s.handlePredictionPositions)
+			s.route(protected, "GET", "/prediction/traders/:id/sim/pnl", "Simulation PnL and equity snapshots", s.handlePredictionSimPnL)
+			s.route(protected, "GET", "/prediction/traders/:id/sim/fills", "Simulation fill history", s.handlePredictionSimFills)
+			s.route(protected, "POST", "/prediction/traders/:id/sim/reset", "Reset simulation account", s.handlePredictionSimReset)
+			s.route(protected, "GET", "/prediction/traders/:id/orders", "Prediction order history", s.handlePredictionOrders)
+			s.route(protected, "POST", "/prediction/traders/:id/orders/sync", "Sync order status from CLOB", chainMiddleware(userRateLimitGuard(s.predictionActionLimiter), s.handlePredictionOrdersSync))
+			s.route(protected, "POST", "/prediction/traders/:id/orders/:order_id/cancel", "Cancel a prediction CLOB order", chainMiddleware(userRateLimitGuard(s.predictionActionLimiter), s.handlePredictionCancelOrder))
+			s.route(protected, "GET", "/prediction/traders/:id/audit", "Prediction audit log", s.handlePredictionAuditLogs)
+			s.route(protected, "GET", "/prediction/traders/:id/live", "Prediction live status and activity feed", s.handlePredictionLive)
+			s.route(protected, "GET", "/prediction/live/feed", "Prediction global activity feed", s.handlePredictionLiveFeed)
+			s.route(protected, "POST", "/prediction/traders/:id/redeem", "Redeem resolved prediction positions", chainMiddleware(userRateLimitGuard(s.predictionActionLimiter), s.handlePredictionRedeem))
 
 			// AI cost tracking
 			s.route(protected, "GET", "/ai-costs", "Get AI call costs for a trader (?trader_id=xxx&period=today)", s.handleGetAICosts)
@@ -452,10 +492,14 @@ func (s *Server) handleHealth(c *gin.Context) {
 // handleGetSystemConfig Get system configuration (configuration that client needs to know)
 func (s *Server) handleGetSystemConfig(c *gin.Context) {
 	userCount, _ := s.store.User().Count()
+	liveEnabled, allowBrowserKey := predictionSecurity()
 	c.JSON(http.StatusOK, gin.H{
-		"initialized":      userCount > 0,
-		"btc_eth_leverage": 10,
-		"altcoin_leverage": 5,
+		"initialized":                          userCount > 0,
+		"btc_eth_leverage":                     10,
+		"altcoin_leverage":                     5,
+		"prediction_live_enabled":              liveEnabled,
+		"prediction_live_redeem_enabled":       predictionLiveRedeemEnabled(),
+		"prediction_allow_browser_private_key": allowBrowserKey,
 	})
 }
 

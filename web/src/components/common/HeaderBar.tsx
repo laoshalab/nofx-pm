@@ -12,6 +12,7 @@ import {
 } from '../../lib/onboarding'
 import { getCurrentPageForPath, ROUTES, type Page } from '../../router/paths'
 import { HyperliquidWalletConnect } from './HyperliquidWalletConnect'
+import { ThemeToggle } from './ThemeToggle'
 
 interface HeaderBarProps {
   onLoginClick?: () => void
@@ -157,6 +158,13 @@ export default function HeaderBar({
                   page: 'strategy',
                   path: ROUTES.strategy,
                   label: t('strategyNav', language),
+                  requiresAuth: true,
+                },
+                {
+                  page: 'prediction',
+                  path: ROUTES.prediction,
+                  label: language === 'zh' ? '预测市场' : 'Prediction',
+                  badge: 'Beta',
                   requiresAuth: true,
                 },
                 {
@@ -354,7 +362,8 @@ export default function HeaderBar({
               )
             )}
 
-            {/* Language Toggle - Always at the rightmost */}
+            {/* Theme + Language */}
+            <ThemeToggle />
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setLanguageDropdownOpen(!languageDropdownOpen)}
@@ -407,7 +416,10 @@ export default function HeaderBar({
           </div>
         </div>
 
-        {/* Mobile Menu Button */}
+        {/* Mobile: theme toggle + menu */}
+        <div className="flex items-center gap-1 md:hidden">
+          <ThemeToggle />
+        </div>
         <motion.button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="md:hidden text-nofx-text-muted hover:text-white"
@@ -493,6 +505,13 @@ export default function HeaderBar({
                       page: 'strategy',
                       path: ROUTES.strategy,
                       label: t('strategyNav', language),
+                      requiresAuth: true,
+                    },
+                    {
+                      page: 'prediction',
+                      path: ROUTES.prediction,
+                      label: language === 'zh' ? '预测市场' : 'Prediction',
+                      badge: 'Beta',
                       requiresAuth: true,
                     },
                     {

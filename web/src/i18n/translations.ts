@@ -96,6 +96,12 @@ export const translations = {
 
     // Competition Page
     aiCompetition: 'AI Competition',
+    themeSwitchLight: 'Switch to light mode',
+    themeSwitchDark: 'Switch to dark mode',
+    competitionTabCrypto: 'Crypto',
+    competitionTabPrediction: 'Prediction Markets',
+    predictionCompetitionSubtitle: 'Polymarket AI simulation leaderboard',
+    predictionCompetitionEmpty: 'Create a prediction trader and enable "Show in competition" on the Prediction page.',
     traders: 'traders',
     liveBattle: 'Live Battle',
     realTimeBattle: 'Real-time Battle',
@@ -1464,6 +1470,12 @@ export const translations = {
 
     // Competition Page
     aiCompetition: 'AI竞赛',
+    themeSwitchLight: '切换到白天模式',
+    themeSwitchDark: '切换到黑夜模式',
+    competitionTabCrypto: '合约',
+    competitionTabPrediction: '预测市场',
+    predictionCompetitionSubtitle: 'Polymarket AI 模拟盘排行榜',
+    predictionCompetitionEmpty: '在预测市场页面创建 Trader，并开启「显示在竞赛」。',
     traders: '交易员',
     liveBattle: '实时对战',
     realTimeBattle: '实时对战',
@@ -2772,6 +2784,12 @@ export const translations = {
 
     // Competition Page
     aiCompetition: 'Kompetisi AI',
+    themeSwitchLight: 'Mode terang',
+    themeSwitchDark: 'Mode gelap',
+    competitionTabCrypto: 'Crypto',
+    competitionTabPrediction: 'Prediksi',
+    predictionCompetitionSubtitle: 'Papan peringkat simulasi Polymarket AI',
+    predictionCompetitionEmpty: 'Buat trader prediksi dan aktifkan "Tampilkan di kompetisi" di halaman Prediksi.',
     traders: 'trader',
     liveBattle: 'Pertarungan Langsung',
     realTimeBattle: 'Pertarungan Realtime',

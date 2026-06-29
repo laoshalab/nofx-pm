@@ -27,6 +27,7 @@ import { SettingsPage } from '../pages/SettingsPage'
 import { StrategyMarketPage } from '../pages/StrategyMarketPage'
 import { StrategyStudioPage } from '../pages/StrategyStudioPage'
 import { TraderDashboardPage } from '../pages/TraderDashboardPage'
+import { PredictionPage } from '../pages/PredictionPage'
 import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useSystemConfig } from '../hooks/useSystemConfig'
@@ -73,8 +74,7 @@ function LoadingScreen() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center"
-      style={{ background: '#0B0E11' }}
+      className="min-h-screen flex items-center justify-center bg-[var(--background)]"
     >
       <div className="text-center">
         <img
@@ -82,7 +82,7 @@ function LoadingScreen() {
           alt="NoFx Logo"
           className="w-16 h-16 mx-auto mb-4 animate-pulse"
         />
-        <p style={{ color: '#EAECEF' }}>{t('loading', language)}</p>
+        <p className="text-[var(--text-primary)]">{t('loading', language)}</p>
       </div>
     </div>
   )
@@ -160,8 +160,7 @@ function AppChrome({
 
   return (
     <div
-      className="min-h-screen"
-      style={{ background: '#0B0E11', color: '#EAECEF' }}
+      className="min-h-screen bg-[var(--background)] text-[var(--foreground)]"
     >
       <HeaderBar
         isLoggedIn={!!user}
@@ -530,6 +529,18 @@ export function AppRoutes() {
         <Route
           path={ROUTES.dashboard}
           element={isAuthenticated ? <DashboardRoute /> : <LandingPage />}
+        />
+        <Route
+          path={ROUTES.prediction}
+          element={
+            isAuthenticated ? (
+              <AppChrome currentPage="prediction" animateContent>
+                <PredictionPage />
+              </AppChrome>
+            ) : (
+              <LandingPage />
+            )
+          }
         />
         <Route
           path={ROUTES.strategy}

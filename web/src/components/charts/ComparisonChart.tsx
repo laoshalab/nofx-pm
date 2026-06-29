@@ -30,9 +30,10 @@ const TIME_PERIODS = [
 
 interface ComparisonChartProps {
   traders: CompetitionTraderData[]
+  fetchEquityHistoryBatch?: (traderIds: string[], hours: number) => Promise<any>
 }
 
-export function ComparisonChart({ traders }: ComparisonChartProps) {
+export function ComparisonChart({ traders, fetchEquityHistoryBatch }: ComparisonChartProps) {
   const { language } = useLanguage()
   const [selectedPeriod, setSelectedPeriod] = useState('7d') // Default to 7 days
 
@@ -46,12 +47,12 @@ export function ComparisonChart({ traders }: ComparisonChartProps) {
     .join(',')
 
   const { data: allTraderHistories, isLoading } = useSWR(
-    traders.length > 0 ? `equity-histories-${tradersKey}-${selectedHours}` : null,
+    traders.length > 0 ? `equity-histories-${tradersKey}-${selectedHours}-${fetchEquityHistoryBatch ? 'custom' : 'crypto'}` : null,
     async () => {
-      console.log('Fetching equity history with hours:', selectedHours)
       const traderIds = traders.map((trader) => trader.trader_id)
-      const batchData = await api.getEquityHistoryBatch(traderIds, selectedHours)
-      console.log('Received data points:', Object.values(batchData.histories || {}).map((h: any) => h?.length))
+      const batchData = fetchEquityHistoryBatch
+        ? await fetchEquityHistoryBatch(traderIds, selectedHours)
+        : await api.getEquityHistoryBatch(traderIds, selectedHours)
       return traders.map((trader) => {
         const history = batchData.histories?.[trader.trader_id] || []
 
