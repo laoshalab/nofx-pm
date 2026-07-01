@@ -36,6 +36,17 @@ docs/marketing/marketing.env
 config.json
 configbak.json
 
+# Marketing video pipeline — generated binaries (scripts + text assets stay tracked)
+docs/marketing/media/**
+!docs/marketing/media/.gitkeep
+docs/marketing/out/**
+!docs/marketing/out/.gitkeep
+docs/marketing/*.docx
+docs/marketing/*.fcp.xml
+docs/marketing/remotion-video/node_modules/
+docs/marketing/remotion-video/out/**
+!docs/marketing/remotion-video/out/.gitkeep
+
 # 数据目录（数据库、日志等）
 data/
 *.db
