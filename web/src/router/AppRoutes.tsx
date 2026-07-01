@@ -24,7 +24,6 @@ import { BeginnerOnboardingPage } from '../pages/BeginnerOnboardingPage'
 import { DataPage } from '../pages/DataPage'
 import { AgentChatPage } from '../pages/AgentChatPage'
 import { SettingsPage } from '../pages/SettingsPage'
-import { StrategyMarketPage } from '../pages/StrategyMarketPage'
 import { StrategyStudioPage } from '../pages/StrategyStudioPage'
 import { TraderDashboardPage } from '../pages/TraderDashboardPage'
 import { PredictionPage } from '../pages/PredictionPage'
@@ -511,16 +510,8 @@ export function AppRoutes() {
           }
         />
         <Route
-          path={ROUTES.strategyMarket}
-          element={
-            isAuthenticated ? (
-              <AppChrome currentPage="strategy-market" animateContent>
-                <StrategyMarketPage />
-              </AppChrome>
-            ) : (
-              <LandingPage />
-            )
-          }
+          path="/strategy-market"
+          element={<Navigate to={ROUTES.agent} replace />}
         />
         <Route
           path={ROUTES.traders}

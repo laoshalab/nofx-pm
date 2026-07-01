@@ -9,6 +9,7 @@ import (
 	"nofx/crypto"
 	"nofx/logger"
 	"nofx/manager"
+	"nofx/prediction/polymarket"
 	"nofx/store"
 	"os"
 	"strings"
@@ -299,6 +300,7 @@ Body: {"show_in_competition":<bool>}`,
 			s.route(protected, "GET", "/prediction/traders/:id/live", "Prediction live status and activity feed", s.handlePredictionLive)
 			s.route(protected, "GET", "/prediction/live/feed", "Prediction global activity feed", s.handlePredictionLiveFeed)
 			s.route(protected, "POST", "/prediction/traders/:id/redeem", "Redeem resolved prediction positions", chainMiddleware(userRateLimitGuard(s.predictionActionLimiter), s.handlePredictionRedeem))
+			s.route(protected, "POST", "/prediction/traders/:id/sell", "Sell prediction position shares", chainMiddleware(userRateLimitGuard(s.predictionActionLimiter), s.handlePredictionSell))
 
 			// AI cost tracking
 			s.route(protected, "GET", "/ai-costs", "Get AI call costs for a trader (?trader_id=xxx&period=today)", s.handleGetAICosts)
@@ -493,13 +495,22 @@ func (s *Server) handleHealth(c *gin.Context) {
 func (s *Server) handleGetSystemConfig(c *gin.Context) {
 	userCount, _ := s.store.User().Count()
 	liveEnabled, allowBrowserKey := predictionSecurity()
+	envSigType := 0
+	envSigSet := false
+	if st, ok := polymarket.EnvSignatureType(); ok {
+		envSigType = st
+		envSigSet = true
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"initialized":                          userCount > 0,
 		"btc_eth_leverage":                     10,
 		"altcoin_leverage":                     5,
-		"prediction_live_enabled":              liveEnabled,
-		"prediction_live_redeem_enabled":       predictionLiveRedeemEnabled(),
+		"prediction_live_enabled":                liveEnabled,
+		"prediction_live_redeem_enabled":         predictionLiveRedeemEnabled(),
 		"prediction_allow_browser_private_key": allowBrowserKey,
+		"prediction_server_wallet_configured":  polymarket.ServerWalletConfigured(),
+		"prediction_env_signature_type":        envSigType,
+		"prediction_env_signature_type_set":    envSigSet,
 	})
 }
 

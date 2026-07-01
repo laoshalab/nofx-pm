@@ -1,0 +1,423 @@
+1
+00:00:00,000 --> 00:00:03,000
+NOFX
+
+2
+00:00:03,000 --> 00:00:15,000
+Prediction markets are becoming
+a new battlefield for crypto traders.
+
+3
+00:00:15,000 --> 00:00:19,000
+Will BTC go up or down in the next 5 minutes?
+
+4
+00:00:19,000 --> 00:00:23,000
+You spot an opportunity on Polymarket—
+
+5
+00:00:23,000 --> 00:00:28,000
+But who discovers markets for you?
+Who calculates edge? Who manages risk?
+
+6
+00:00:23,000 --> 00:00:28,000
+Who keeps evidence for every decision cycle?
+
+7
+00:00:28,000 --> 00:00:33,000
+Discover · Analyze · Decide · Risk · Execute · Review
+
+8
+00:00:38,000 --> 00:00:42,000
+Still clicking manually in the browser
+or stitching together scripts?
+
+9
+00:00:42,000 --> 00:00:45,000
+You don't need another wallet.
+You need a system.
+
+10
+00:00:42,000 --> 00:00:45,000
+Introducing NOFX Prediction—
+Polymarket inside your AI trading terminal.
+
+11
+00:00:38,000 --> 00:00:45,000
+NOFX Prediction · AI × Polymarket
+One terminal, two pipelines
+
+12
+00:00:55,000 --> 00:01:01,000
+Prediction markets aren't futures.
+No leverage. No liquidation.
+
+13
+00:01:01,000 --> 00:01:08,000
+Your maximum loss is the stake you put in.
+
+14
+00:00:55,000 --> 00:01:08,000
+No leverage · Stake is your cap
+
+15
+00:01:08,000 --> 00:01:14,000
+Too many markets to watch manually;
+pricing is probability—you hunt for edge.
+
+16
+00:01:14,000 --> 00:01:22,000
+Execution still demands liquidity, spread, and settlement timing.
+
+17
+00:01:08,000 --> 00:01:22,000
+Edge = Subjective prob. − Implied prob.
+
+18
+00:01:22,000 --> 00:01:29,000
+You don't need "just an order bot."
+You need a full loop.
+
+19
+00:01:29,000 --> 00:01:35,000
+Discover → Analyze → Decide → Risk → Execute → Review
+That's what NOFX is built for.
+
+20
+00:02:00,000 --> 00:02:06,000
+New to NOFX? In one line:
+an open-source AI trading terminal.
+
+21
+00:02:00,000 --> 00:02:12,000
+Chapter 01 · NOFX Platform
+
+22
+00:02:12,000 --> 00:02:20,000
+One side: Binance, Hyperliquid, Bybit.
+Other side: DeepSeek, Claude, GPT—
+
+23
+00:02:20,000 --> 00:02:28,000
+On-demand via Claw402.
+No API key zoo to maintain.
+
+24
+00:02:12,000 --> 00:02:28,000
+Multi-exchange · Multi-model
+
+25
+00:02:28,000 --> 00:02:42,000
+Strategy Studio for symbols, indicators, risk;
+Dashboard for positions, PnL, and AI reasoning chains.
+
+26
+00:02:42,000 --> 00:02:52,000
+Competition mode: multiple AI traders, live performance.
+
+27
+00:02:52,000 --> 00:03:01,000
+Prediction isn't a side project.
+It runs in parallel with Crypto—same login, same AI config.
+
+28
+00:03:01,000 --> 00:03:10,000
+Same web shell—execution swaps from CEX contracts
+to Polymarket YES/NO shares.
+
+29
+00:02:52,000 --> 00:03:10,000
+Crypto ∥ Prediction
+
+30
+00:03:10,000 --> 00:03:20,000
+No second toolchain to learn.
+Open /prediction—that's your prediction desk.
+
+31
+00:03:10,000 --> 00:03:30,000
+/prediction
+
+32
+00:03:30,000 --> 00:03:38,000
+Chapter 02 · Why NOFX Prediction
+
+33
+00:03:38,000 --> 00:03:45,000
+Advantage 1: AI isn't pasted-on ChatGPT—
+it's an engineered decision engine.
+
+34
+00:03:38,000 --> 00:03:45,000
+01 · AI Decision Engine
+
+35
+00:03:45,000 --> 00:03:55,000
+Each cycle: search markets → fetch midpoints →
+build context → call AI → parse JSON → risk gate → execute
+
+36
+00:03:55,000 --> 00:04:05,000
+Every decision carries confidence, edge_pct, reasoning—
+auditable, replayable, optimizable.
+
+37
+00:03:45,000 --> 00:04:05,000
+8-step cycle
+
+38
+00:04:05,000 --> 00:04:18,000
+Not a black-box "buy YES."
+AI judges; the system constrains.
+
+39
+00:04:05,000 --> 00:04:18,000
+CoT · Edge · Confidence
+
+40
+00:04:23,000 --> 00:04:30,000
+Advantage 2: Three modes—risk blocked by defaults.
+
+41
+00:04:23,000 --> 00:04:30,000
+02 · Sim → Preview → Live
+
+42
+00:04:30,000 --> 00:04:39,000
+Simulation: virtual USDC, zero on-chain risk.
+Preview: full EIP-712 signing, no POST to CLOB.
+
+43
+00:04:39,000 --> 00:04:48,000
+Live requires explicit server enable—off by default.
+Sim first, Preview second, Live last.
+
+44
+00:04:30,000 --> 00:04:48,000
+Three-tier modes
+
+45
+00:04:48,000 --> 00:04:55,000
+Platform defaults—not a hidden UI toggle.
+
+46
+00:04:48,000 --> 00:04:55,000
+Secure by default
+
+47
+00:04:55,000 --> 00:05:02,000
+Advantage 3: Prediction-native risk gates—
+not reused leverage logic.
+
+48
+00:04:55,000 --> 00:05:02,000
+03 · Prediction Risk Gate
+
+49
+00:05:02,000 --> 00:05:11,000
+Per-order caps, daily volume, confidence, edge,
+price band, spread, liquidity—all hard-blocked.
+
+50
+00:05:11,000 --> 00:05:18,000
+AI hallucinates "all-in YES"?
+Risk gate says no—logged as risk_blocked.
+
+51
+00:05:02,000 --> 00:05:18,000
+Risk parameters
+
+52
+00:05:18,000 --> 00:05:28,000
+No edge, no order.
+
+53
+00:05:18,000 --> 00:05:28,000
+risk_blocked
+
+54
+00:05:35,000 --> 00:05:42,000
+Advantage 4: Rules engine and hybrid mode.
+
+55
+00:05:35,000 --> 00:05:42,000
+04 · AI · Rules · Hybrid
+
+56
+00:05:42,000 --> 00:05:50,000
+5-minute up/down: rules on midpoint deviation;
+Hybrid: rules filter, AI confirms.
+
+57
+00:05:50,000 --> 00:05:58,000
+Fast loop with rules, deep think with AI—
+one PredictionTrader, switch modes.
+
+58
+00:05:42,000 --> 00:05:58,000
+Rule examples
+
+59
+00:06:05,000 --> 00:06:12,000
+Advantage 5: Browse to leaderboard—one workspace.
+
+60
+00:06:05,000 --> 00:06:12,000
+05 · All-in-One Workspace
+
+61
+00:06:12,000 --> 00:06:25,000
+Market browse, Live Console, decision history,
+sim PnL, competition—all inside NOFX.
+
+62
+00:06:12,000 --> 00:06:25,000
+Browse · Console · Decisions · Sim · Competition
+
+63
+00:06:25,000 --> 00:06:32,000
+Chapter 03 · Day One Demo
+
+64
+00:06:32,000 --> 00:06:38,000
+Day one as a NOFX user in prediction markets.
+
+65
+00:06:38,000 --> 00:06:45,000
+Log in. Click "Prediction Markets" in the nav.
+
+66
+00:06:45,000 --> 00:06:55,000
+Create trader "Poly Crypto", pick an AI model;
+tag crypto, keyword "up or down".
+
+67
+00:06:55,000 --> 00:07:05,000
+Mode: Simulation, $10,000 virtual USDC.
+Create—no private key, no on-chain risk.
+
+68
+00:07:05,000 --> 00:07:12,000
+Run one cycle. Live Console lights up.
+Cycle count +1.
+
+69
+00:07:05,000 --> 00:07:18,000
+Cycle +1
+
+70
+00:07:18,000 --> 00:07:28,000
+New decision in history.
+Expand CoT—see how AI computes edge.
+
+71
+00:07:28,000 --> 00:07:38,000
+buy_yes, confidence 78, edge 3.2%.
+
+72
+00:07:38,000 --> 00:07:44,000
+Filled or Preview on success;
+risk blocks are explicit.
+
+73
+00:07:44,000 --> 00:07:48,000
+Every cycle leaves evidence.
+
+74
+00:07:38,000 --> 00:07:48,000
+Filled · Preview · Risk blocked
+
+75
+00:07:48,000 --> 00:08:00,000
+Sim account: cash, positions, equity, total PnL.
+Fills linked to decision cycles.
+
+76
+00:07:48,000 --> 00:08:05,000
+Sim PnL
+
+77
+00:08:05,000 --> 00:08:15,000
+Reset and rerun with new params.
+Same iteration loop as Crypto strategies.
+
+78
+00:08:15,000 --> 00:08:22,000
+Happy with sim? Switch to Preview—inspect EIP-712 wire.
+
+79
+00:08:22,000 --> 00:08:30,000
+Open Competition → Prediction tab, opt in—
+join the public leaderboard.
+
+80
+00:08:15,000 --> 00:08:30,000
+Sim → Preview → Competition
+
+81
+00:08:30,000 --> 00:08:38,000
+Chapter 04 · Security
+
+82
+00:08:38,000 --> 00:08:45,000
+Live off by default; encrypted keys; Preview first.
+
+83
+00:08:45,000 --> 00:08:52,000
+API ownership checks; audit logs; Live redeem supported.
+
+84
+00:08:38,000 --> 00:08:52,000
+6 security pillars
+
+85
+00:08:52,000 --> 00:08:58,000
+More power demands more conservative defaults.
+
+86
+00:08:58,000 --> 00:09:05,000
+Prediction markets carry principal risk.
+Simulate first; understand rules before live.
+
+87
+00:08:52,000 --> 00:09:05,000
+Live disabled by default
+
+88
+00:09:05,000 --> 00:09:15,000
+Disclaimer · Not financial advice
+
+89
+00:09:15,000 --> 00:09:22,000
+Crypto contracts, prediction probabilities—
+two markets, one NOFX terminal.
+
+90
+00:09:22,000 --> 00:09:25,000
+AI decisions, hard risk gates, replay, competition.
+
+91
+00:09:25,000 --> 00:09:32,000
+Open NOFX. Go to Prediction Markets.
+
+92
+00:09:32,000 --> 00:09:38,000
+Run your first AI prediction cycle in Simulation.
+
+93
+00:09:25,000 --> 00:09:38,000
+go build · /prediction · PREDICTION.md
+
+94
+00:09:38,000 --> 00:09:50,000
+NOFX Prediction—
+Polymarket as part of your AI trading terminal.
+
+95
+00:09:38,000 --> 00:09:50,000
+NOFX Prediction
+
+96
+00:09:50,000 --> 00:10:00,000
+NOFX

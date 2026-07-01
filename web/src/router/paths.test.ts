@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildDashboardPath,
+  buildPredictionPath,
   getCurrentPageForPath,
   LEGACY_HASH_ROUTES,
   ROUTES,
@@ -11,7 +12,6 @@ describe('router paths helpers', () => {
     expect(getCurrentPageForPath(ROUTES.home)).toBeUndefined()
     expect(getCurrentPageForPath(ROUTES.welcome)).toBe('traders')
     expect(getCurrentPageForPath(ROUTES.dashboard)).toBe('trader')
-    expect(getCurrentPageForPath(ROUTES.strategyMarket)).toBe('strategy-market')
   })
 
   it('builds dashboard path with optional trader query', () => {
@@ -24,9 +24,17 @@ describe('router paths helpers', () => {
     )
   })
 
+  it('builds prediction path with optional trader id query', () => {
+    expect(buildPredictionPath()).toBe(ROUTES.prediction)
+    expect(buildPredictionPath('pred-trader-uuid')).toBe(
+      '/prediction?trader=pred-trader-uuid'
+    )
+  })
+
   it('keeps legacy hash redirects aligned with current routes', () => {
     expect(LEGACY_HASH_ROUTES.trader).toBe(ROUTES.dashboard)
     expect(LEGACY_HASH_ROUTES.details).toBe(ROUTES.dashboard)
     expect(LEGACY_HASH_ROUTES.strategy).toBe(ROUTES.strategy)
+    expect(LEGACY_HASH_ROUTES['strategy-market']).toBe(ROUTES.agent)
   })
 })

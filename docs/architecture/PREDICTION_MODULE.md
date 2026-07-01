@@ -130,7 +130,7 @@ type PredictionVenue interface {
 }
 ```
 
-**实现状态：** `polymarket.Client` 已实现 M0 方法；M1 方法当前返回 `not implemented`。
+**实现状态：** `polymarket.Client` 已实现 M0 只读与 M1+ 交易方法（Preview/Live 由配置门控）。
 
 ### 3.2 领域模型要点
 
@@ -147,7 +147,7 @@ type PredictionVenue interface {
 |--------|------|----------|
 | `buy_yes` | 买入 YES token | 无持仓或加仓 |
 | `buy_no` | 买入 NO token | 无持仓或加仓 |
-| `sell` | 卖出已有份额 | 必须有对应 token 持仓 |
+| `sell` | 卖出已有份额 | 必须有对应 token 持仓；**不受** `max_order_usd` 与买入价带限制（卖出价带 `[0.001, 0.999]`） |
 | `hold` | 维持现状 | 不操作 |
 | `wait` | 本周期跳过 | 不操作 |
 | `redeem` | 领取已结算市场 | M4；市场已 resolve |
@@ -299,8 +299,8 @@ if g.cfg.PreviewMode {
 
 #### M1 验收标准
 
-- [ ] 测试网或主网小额（≤$1）限价单下单成功
-- [ ] Preview 模式零链上提交
+- [x] 主网小额（≤$1）限价单下单 + 取消 — `TestLiveMainnetE2E` + CI `prediction-live-e2e.yml`
+- [x] Preview 模式零链上提交 — `TestLiveMainnetE2E/PreviewSignNoPost`
 - [ ] `GetOutcomePositions` 与 Polymarket UI 一致
 - [ ] 错误路径：余额不足、价格 tick、市场 closed
 
@@ -445,6 +445,7 @@ prediction_venue_configs    -- Polymarket 钱包、proxy、enabled
 | POST | `/api/prediction/traders/:id/stop` | 停止 |
 | GET | `/api/prediction/traders/:id/decisions` | 决策历史 |
 | GET | `/api/prediction/traders/:id/positions` | YES/NO 持仓 |
+| POST | `/api/prediction/traders/:id/sell` | 手动卖出持仓（`token_id`, 可选 `size_usd` / `limit_price`） |
 
 #### M3.3 前端页面
 
@@ -564,9 +565,16 @@ prediction_trader:
 | 层级 | 内容 |
 |------|------|
 | 单元 | `parseTokenIDs`、EIP-712 向量、gate 边界、JSON 解析 |
-| 集成 | httptest mock Gamma/CLOB；可选 `-integration` flag 打真实 API |
-| E2E | Preview 模式完整 cycle；M1 后小额 live order |
+| 集成 | httptest mock Gamma/CLOB；`POLYMARKET_LIVE_E2E=1` 打真实主网 API |
+| E2E | Preview 模式完整 cycle；Live ≤$1 place/cancel（`prediction/polymarket/e2e_live_test.go`） |
 | 回归 | crypto AutoTrader 现有测试套件全绿 |
+
+**Live E2E CI：** [`.github/workflows/prediction-live-e2e.yml`](../../.github/workflows/prediction-live-e2e.yml) — 需 Actions secret `POLYMARKET_PRIVATE_KEY`；可选 `POLYMARKET_PROXY_ADDRESS`、变量 `POLYMARKET_E2E_MARKET_SLUG`。无 secret 时 job 跳过（test `SKIP`）。触发：`workflow_dispatch`、每周 schedule、`main` 推送 polymarket 路径变更。
+
+```bash
+POLYMARKET_LIVE_E2E=1 POLYMARKET_PRIVATE_KEY=0x... \
+  go test -v -count=1 ./prediction/polymarket -run TestLiveMainnetE2E -timeout 5m
+```
 
 ---
 
@@ -576,7 +584,7 @@ prediction_trader:
 |------|------|
 | Polymarket API 变更 | `polymarket/` 隔离；版本化 User-Agent |
 | 私钥安全 | 加密存储；日志脱敏；Preview 默认；Live 禁止浏览器上传私钥（可配置） |
-| Live 误下单 | `PREDICTION_LIVE_ENABLED` 默认 false；API 归属校验；前端二次确认 |
+| Live 误下单 | `PREDICTION_LIVE_ENABLED` 默认 true（可设 false 关闭）；API 归属校验；前端二次确认 |
 | IDOR | 所有 mutating 端点先 `GetTrader(user_id, id)` |
 | AI 幻觉下单 | 硬风控 + Preview + min_edge |
 | neg_risk 市场差异 | 从 Gamma 读取 `neg_risk` 贯穿下单 |
@@ -587,10 +595,11 @@ prediction_trader:
 
 | 变量 | 默认 | 说明 |
 |------|------|------|
-| `PREDICTION_LIVE_ENABLED` | `false` | 为 `true` 时才允许 Live 创建/启动/run-once |
+| `PREDICTION_LIVE_ENABLED` | `true` | 为 `false` 时禁止 Live 创建/启动/run-once |
 | `PREDICTION_ALLOW_BROWSER_PRIVATE_KEY` | `false` | 为 `true` 时 Web/API 可上传 Live 私钥（仅开发） |
 | `POLYGON_RPC_URL` | — | Polygon RPC（pUSD adapter 授权检查、EOA 直发 redeem） |
-| `POLYMARKET_RELAYER_URL` | `https://relayer-v2.polymarket.com` | Gasless relayer |
+| `POLYMARKET_PROXY_ADDRESS` | — | Proxy/funder；可与 Trader 级覆盖 |
+| `POLYMARKET_SIGNATURE_TYPE` | — | 全局 CLOB 签名类型 `0–3`；Trader 未指定时生效；有 Proxy 时默认 `2` |
 | `POLYMARKET_BUILDER_API_KEY` / `SECRET` / `PASSPHRASE` | — | Polymarket Builder 凭证（Settings → Builder Codes） |
 | `POLYMARKET_REDEEM_USDCE` | `false` | 为 `true` 时 redeem 到 USDC.e（legacy CTF）；默认 pUSD adapter |
 
@@ -639,6 +648,45 @@ Web 通过 `GET /api/config` 读取 `prediction_live_enabled`、`prediction_live
 | 可结算扫描 | Data API `redeemable=true` 优先，Gamma `closed` 回退 |
 | 自动 redeem | Live + Builder 配置后 `canAutoRedeem()` 启用 |
 | API / Web | 移除 Live 501 硬挡；`prediction_live_redeem_enabled` 随 Live 门控 |
+
+### 9.5 P3 策略与体验（已实现）
+
+| 能力 | 实现 |
+|------|------|
+| Web 策略表单补全 | `max_buy_no_price`、`min_hours_to_expiry`、`max_open_markets`、`min/max_price`、`fast_loop_sec`、策略 `keywords`、Spot 符号 |
+| AI 上下文增强 | 候选市场含 YES 订单簿摘要（bid/ask/深度）、24h volume、结算时间；可选 Binance Spot 报价 |
+| 规则 Spot 信号 | `rules.spot_symbol` + `spot_min_change_pct`；up/down 市场 YES/NO 与 5m 现货方向对齐 |
+| 模拟结算 | Gamma `outcomePrices` 解析；redeem 按真实 resolution 判定（mid≥0.95 回退） |
+| 单元测试 | `spot/`、`engine/spot_rules_test.go`、`types/market_test.go` |
+
+### 9.8 AI Trader 自动 CLOB 下单（已实现）
+
+| 能力 | 实现 |
+|------|------|
+| 默认模式 | 新建 Trader 默认 `live`；`PREDICTION_LIVE_ENABLED` 默认 true |
+| 服务端钱包 | `POLYMARKET_PRIVATE_KEY` / `POLYMARKET_PROXY_ADDRESS` 环境变量；无需浏览器上传私钥 |
+| AI FastLoop | `fast_loop_sec` 默认 60s；AI / rules / hybrid 均启用周期循环 |
+| 订单同步 | 每周期结束 `SyncOrderRecordsFromCLOB` 轮询成交并导入挂单 |
+| 创建即启动 | Web 创建 Live Trader 后自动 `POST .../start` |
+
+流程：`Run()` → `runCycle()` → AI 决策 → `PlaceLimitOrder` → CLOB POST（live）→ Telegram 通知。
+
+### 9.7 Telegram 预测市场（已实现）
+
+| 能力 | 实现 |
+|------|------|
+| 命令 | `/prediction`、`/prediction_status`、`/prediction_positions` |
+| 成交通知 | filled / preview / posted / redeem / error / rejected |
+| 周期失败 | AI 或执行错误时推送 |
+|  wiring | `prediction/trader.TelegramNotify` → `telegram.SendMarkdown` |
+
+### 9.6 Live E2E CI（已实现）
+
+| 能力 | 实现 |
+|------|------|
+| 主网验收测试 | `prediction/polymarket/e2e_live_test.go` — Preview 签名 + ≤$1 限价单 POST + Cancel |
+| GitHub Actions | `.github/workflows/prediction-live-e2e.yml` — weekly + manual + main path push |
+| 门控 | `POLYMARKET_LIVE_E2E=1` + secret `POLYMARKET_PRIVATE_KEY`；无 secret 时 SKIP |
 
 **外部依赖：**
 

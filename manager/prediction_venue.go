@@ -2,6 +2,7 @@ package manager
 
 import (
 	"fmt"
+	"strings"
 
 	"nofx/prediction/polymarket"
 	"nofx/prediction/sim"
@@ -22,10 +23,22 @@ func BuildVenueForTrader(st *store.Store, row *store.PredictionTraderDB) types.P
 func buildPolymarketVenue(row *store.PredictionTraderDB) types.PredictionVenue {
 	cfg := polymarket.MergeEnvConfig(polymarket.DefaultConfig())
 	cfg.PreviewMode = row.EffectiveTradingMode() != store.PredictionTradingModeLive
-	cfg.ProxyAddress = row.ProxyAddress
-	cfg.SignatureType = row.SignatureType
-	cfg.PrivateKey = row.PrivateKey.String()
+	cfg.PrivateKey = effectivePrivateKey(row)
+	if strings.TrimSpace(row.ProxyAddress) != "" {
+		cfg.ProxyAddress = row.ProxyAddress
+	}
+	cfg.SignatureType = polymarket.ResolveSignatureType(row.SignatureType, cfg.ProxyAddress)
 	return polymarket.NewClient(cfg)
+}
+
+func effectivePrivateKey(row *store.PredictionTraderDB) string {
+	if row == nil {
+		return polymarket.EnvPrivateKey()
+	}
+	if k := row.PrivateKey.String(); k != "" {
+		return k
+	}
+	return polymarket.EnvPrivateKey()
 }
 
 func buildSimVenue(st *store.Store, row *store.PredictionTraderDB) types.PredictionVenue {
@@ -55,12 +68,12 @@ func ValidatePredictionTraderRow(row *store.PredictionTraderDB) error {
 	mode := row.EffectiveTradingMode()
 	switch mode {
 	case store.PredictionTradingModeLive:
-		if row.PrivateKey.String() == "" {
-			return fmt.Errorf("private key required for live trading")
+		if effectivePrivateKey(row) == "" {
+			return fmt.Errorf("private key required for live trading (configure trader key or POLYMARKET_PRIVATE_KEY)")
 		}
 	case store.PredictionTradingModePreview:
-		if row.PrivateKey.String() == "" {
-			return fmt.Errorf("private key required for preview signing")
+		if effectivePrivateKey(row) == "" {
+			return fmt.Errorf("private key required for preview signing (configure trader key or POLYMARKET_PRIVATE_KEY)")
 		}
 	}
 	return nil

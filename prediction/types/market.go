@@ -16,6 +16,32 @@ type Market struct {
 	NoTokenID     string    `json:"no_token_id"`
 	Volume24h     float64   `json:"volume_24h,omitempty"`
 	Liquidity     float64   `json:"liquidity,omitempty"`
+	OutcomePrices []float64 `json:"outcome_prices,omitempty"` // [YES, NO] when resolved
+}
+
+// WinningOutcome returns YES, NO, or "" when resolution is unknown.
+func (m *Market) WinningOutcome() string {
+	if len(m.OutcomePrices) >= 2 {
+		if m.OutcomePrices[0] >= 0.99 {
+			return "YES"
+		}
+		if m.OutcomePrices[1] >= 0.99 {
+			return "NO"
+		}
+	}
+	return ""
+}
+
+// PayoutPerShare returns $1 for winning outcome shares, else $0 when resolved.
+func (m *Market) PayoutPerShare(outcome string) (float64, bool) {
+	winner := m.WinningOutcome()
+	if winner == "" {
+		return 0, false
+	}
+	if winner == outcome {
+		return 1, true
+	}
+	return 0, true
 }
 
 // OutcomePosition is a held YES/NO token position.

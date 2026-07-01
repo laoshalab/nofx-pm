@@ -132,17 +132,6 @@ export default function HeaderBar({
                   requiresAuth: false,
                 },
                 {
-                  page: 'strategy-market',
-                  path: ROUTES.strategyMarket,
-                  label:
-                    language === 'zh'
-                      ? '策略市场'
-                      : language === 'id'
-                        ? 'Pasar'
-                        : 'Market',
-                  requiresAuth: true,
-                },
-                {
                   page: 'traders',
                   path: ROUTES.traders,
                   label: t('configNav', language),
@@ -477,17 +466,6 @@ export default function HeaderBar({
                             ? 'Data'
                             : 'Data',
                       requiresAuth: false,
-                    },
-                    {
-                      page: 'strategy-market',
-                      path: ROUTES.strategyMarket,
-                      label:
-                        language === 'zh'
-                          ? '策略市场'
-                          : language === 'id'
-                            ? 'Pasar'
-                            : 'Market',
-                      requiresAuth: true,
                     },
                     {
                       page: 'traders',

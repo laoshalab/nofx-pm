@@ -300,7 +300,7 @@ NOFX 会记录有价值的贡献，并计划在生态增长后回馈贡献者。
 | | |
 | :--- | :--- |
 | 官网 | [vergex.trade](https://vergex.trade) |
-| Dashboard | [vergex.trade/explore](https://vergex.trade/explore) |
+| Agent | [nofxos.ai/agent](https://nofxos.ai/agent) |
 | Telegram | [nofx_dev_community](https://t.me/nofx_dev_community) |
 | Twitter | [@vergex_ai](https://x.com/vergex_ai) |
 

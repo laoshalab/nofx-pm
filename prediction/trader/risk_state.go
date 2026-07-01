@@ -100,6 +100,7 @@ func (pt *PredictionTrader) auditExecution(out types.ExecutionOutcome) {
 		Status:      out.Status,
 		Message:     msg,
 	})
+	pt.notifyExecution(out)
 }
 
 func auditLevel(eventType string) string {

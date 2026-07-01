@@ -30,12 +30,16 @@ const (
 
 // RuleConfig for FastLoop / rules mode.
 type RuleConfig struct {
-	MaxBuyYesPrice  float64 `json:"max_buy_yes_price"`
-	MaxBuyNoPrice   float64 `json:"max_buy_no_price"`
-	MinLiquidityUsd float64 `json:"min_liquidity_usd"`
-	MaxSpread       float64 `json:"max_spread"`
-	DefaultSizeUsd  float64 `json:"default_size_usd"`
-	DefaultEdgePct  float64 `json:"default_edge_pct"`
+	MaxBuyYesPrice   float64 `json:"max_buy_yes_price"`
+	MaxBuyNoPrice    float64 `json:"max_buy_no_price"`
+	MinLiquidityUsd  float64 `json:"min_liquidity_usd"`
+	MaxSpread        float64 `json:"max_spread"`
+	DefaultSizeUsd   float64 `json:"default_size_usd"`
+	DefaultEdgePct   float64 `json:"default_edge_pct"`
+	SpotSymbol       string  `json:"spot_symbol,omitempty"`        // e.g. BTCUSDT; empty disables spot filter
+	SpotMinChangePct float64 `json:"spot_min_change_pct,omitempty"` // min 5m % move for up/down markets
+	TakeProfitMid    float64 `json:"take_profit_mid,omitempty"`     // sell when position mid >= this (0=off)
+	SellSizeUsd      float64 `json:"sell_size_usd,omitempty"`       // partial sell size; 0 = full position
 }
 
 // StrategyConfig is the prediction trader strategy (M2).
@@ -69,6 +73,7 @@ func DefaultStrategyConfig() StrategyConfig {
 		MinLiquidityUsd:  500,
 		MinHoursToExpiry: 0.25,
 		ScanIntervalMin:  5,
+		FastLoopSec:      60, // AI/rules periodic CLOB cycles when trader is running
 		Risk:             risk.DefaultConfig(),
 	}
 }
@@ -105,6 +110,9 @@ func (s StrategyConfig) WithDefaults() StrategyConfig {
 	}
 	if s.ScanIntervalMin <= 0 {
 		s.ScanIntervalMin = def.ScanIntervalMin
+	}
+	if s.FastLoopSec <= 0 {
+		s.FastLoopSec = def.FastLoopSec
 	}
 	s.Risk = risk.FillDefaults(s.Risk)
 	return s

@@ -50,7 +50,7 @@ export default function AgentGrid() {
 
   const handleInitialize = () => {
     if (user) {
-      navigate('/strategy-market')
+      navigate('/agent')
     } else {
       navigate('/login')
     }

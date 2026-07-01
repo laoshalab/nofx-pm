@@ -63,18 +63,20 @@ func FillDefaults(cfg Config) Config {
 }
 
 type Gate struct {
-	cfg             Config
-	dailyVolume     float64
-	openMarkets     int
-	openMarketSlugs map[string]bool
-	marketExposure  map[string]float64
+	cfg              Config
+	dailyVolume      float64
+	openMarkets      int
+	openMarketSlugs  map[string]bool
+	marketExposure   map[string]float64
+	positionsByToken map[string]types.OutcomePosition
 }
 
 func NewGate(cfg Config) *Gate {
 	return &Gate{
-		openMarketSlugs: make(map[string]bool),
-		marketExposure:  make(map[string]float64),
-		cfg:             cfg,
+		openMarketSlugs:  make(map[string]bool),
+		marketExposure:   make(map[string]float64),
+		positionsByToken: make(map[string]types.OutcomePosition),
+		cfg:              cfg,
 	}
 }
 
@@ -87,11 +89,15 @@ func (g *Gate) SetOpenMarkets(n int)     { g.openMarkets = n }
 func (g *Gate) SetPositions(positions []types.OutcomePosition) {
 	g.openMarketSlugs = make(map[string]bool)
 	g.marketExposure = make(map[string]float64)
+	g.positionsByToken = make(map[string]types.OutcomePosition)
 	for _, p := range positions {
 		if p.Shares <= 0 || p.MarketSlug == "" {
 			continue
 		}
 		g.openMarketSlugs[p.MarketSlug] = true
+		if p.TokenID != "" {
+			g.positionsByToken[p.TokenID] = p
+		}
 		price := p.MidPrice
 		if price <= 0 {
 			price = p.AvgCost
@@ -104,9 +110,27 @@ func (g *Gate) SetPositions(positions []types.OutcomePosition) {
 	g.openMarkets = len(g.openMarketSlugs)
 }
 
+// PositionForToken returns the cached open position for sell sizing.
+func (g *Gate) PositionForToken(tokenID string) (types.OutcomePosition, bool) {
+	if tokenID == "" {
+		return types.OutcomePosition{}, false
+	}
+	p, ok := g.positionsByToken[tokenID]
+	return p, ok
+}
+
 func (g *Gate) CheckPrice(price float64) error {
 	if price < g.cfg.MinPrice || price > g.cfg.MaxPrice {
 		return fmt.Errorf("price %.4f outside [%.2f, %.2f]", price, g.cfg.MinPrice, g.cfg.MaxPrice)
+	}
+	return nil
+}
+
+// CheckSellPrice allows exits on low/high marks outside the buy band.
+func (g *Gate) CheckSellPrice(price float64) error {
+	const sellMin, sellMax = 0.001, 0.999
+	if price < sellMin || price > sellMax {
+		return fmt.Errorf("sell price %.4f outside [%.3f, %.3f]", price, sellMin, sellMax)
 	}
 	return nil
 }
@@ -175,13 +199,32 @@ func (g *Gate) CheckDecision(d *types.PredictionDecision) error {
 	case types.ActionHold, types.ActionWait, types.ActionRedeem:
 		return nil
 	case types.ActionSell:
-		if d.SizeUsd > g.cfg.MaxOrderUsd {
-			return fmt.Errorf("sell usd %.2f > max %.2f", d.SizeUsd, g.cfg.MaxOrderUsd)
+		if d.SizeUsd <= 0 {
+			return fmt.Errorf("sell size_usd must be positive")
+		}
+		if d.TokenID != "" {
+			p, ok := g.positionsByToken[d.TokenID]
+			if !ok || p.Shares <= 0 {
+				return fmt.Errorf("no open position for sell")
+			}
+			mark := p.MidPrice
+			if mark <= 0 {
+				mark = p.AvgCost
+			}
+			if mark > 0 {
+				maxUsd := p.Shares * mark * 1.01
+				if d.SizeUsd > maxUsd {
+					return fmt.Errorf("sell usd %.2f exceeds position ~%.2f", d.SizeUsd, p.Shares*mark)
+				}
+			}
 		}
 		if d.LimitPrice > 0 {
-			if err := g.CheckPrice(d.LimitPrice); err != nil {
+			if err := g.CheckSellPrice(d.LimitPrice); err != nil {
 				return err
 			}
+		}
+		if err := g.CheckDailyVolume(d.SizeUsd); err != nil {
+			return err
 		}
 		return nil
 	case types.ActionBuyYes, types.ActionBuyNo:
@@ -228,5 +271,24 @@ func (g *Gate) AddMarketExposure(marketSlug string, usd float64) {
 	if !g.openMarketSlugs[marketSlug] {
 		g.openMarketSlugs[marketSlug] = true
 		g.openMarkets = len(g.openMarketSlugs)
+	}
+}
+
+// ReduceMarketExposure updates in-memory exposure after a sell fill (same cycle).
+func (g *Gate) ReduceMarketExposure(marketSlug string, usd float64) {
+	if marketSlug == "" || usd <= 0 {
+		return
+	}
+	if g.marketExposure == nil {
+		return
+	}
+	current := g.marketExposure[marketSlug]
+	current -= usd
+	if current <= 1e-6 {
+		delete(g.marketExposure, marketSlug)
+		delete(g.openMarketSlugs, marketSlug)
+		g.openMarkets = len(g.openMarketSlugs)
+	} else {
+		g.marketExposure[marketSlug] = current
 	}
 }

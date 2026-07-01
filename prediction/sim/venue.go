@@ -239,8 +239,7 @@ func (v *Venue) FindRedeemablePositions() ([]types.RedeemablePosition, error) {
 		if err != nil || m == nil || !m.Closed {
 			continue
 		}
-		mid, err := v.market.GetMidPrice(p.TokenID)
-		if err != nil || mid < 0.95 {
+		if !simPositionWon(v, m, p.Outcome, p.TokenID) {
 			continue
 		}
 		out = append(out, types.RedeemablePosition{
@@ -254,6 +253,24 @@ func (v *Venue) FindRedeemablePositions() ([]types.RedeemablePosition, error) {
 	return out, nil
 }
 
+func simPayoutForPosition(v *Venue, m *types.Market, outcome, tokenID string) float64 {
+	if payout, ok := m.PayoutPerShare(outcome); ok {
+		return payout
+	}
+	mid, err := v.market.GetMidPrice(tokenID)
+	if err != nil {
+		return 0
+	}
+	if mid >= 0.95 {
+		return 1.0
+	}
+	return 0
+}
+
+func simPositionWon(v *Venue, m *types.Market, outcome, tokenID string) bool {
+	return simPayoutForPosition(v, m, outcome, tokenID) > 0
+}
+
 func (v *Venue) RedeemCondition(conditionID string, negRisk bool) (*types.RedeemResult, error) {
 	if conditionID == "" {
 		return nil, fmt.Errorf("empty condition_id")
@@ -262,13 +279,18 @@ func (v *Venue) RedeemCondition(conditionID string, negRisk bool) (*types.Redeem
 		if p.ConditionID != conditionID || p.Shares <= 0 {
 			continue
 		}
-		mid, err := v.market.GetMidPrice(p.TokenID)
-		if err != nil {
-			return nil, err
-		}
+		m, mErr := v.market.GetMarketBySlug(p.MarketSlug)
 		payout := 0.0
-		if mid >= 0.95 {
-			payout = 1.0
+		if mErr == nil && m != nil {
+			payout = simPayoutForPosition(v, m, p.Outcome, p.TokenID)
+		} else {
+			mid, err := v.market.GetMidPrice(p.TokenID)
+			if err != nil {
+				return nil, err
+			}
+			if mid >= 0.95 {
+				payout = 1.0
+			}
 		}
 		shares := p.Shares
 		usd, err := v.ledger.RedeemPosition(p.TokenID, payout)

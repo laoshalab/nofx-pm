@@ -1,0 +1,58 @@
+shot_id,type,path,duration_sec,status,replace_with
+01,video,media/shots/01_placeholder.mov,3.0,placeholder,黑场 Logo 淡入
+02,video,media/shots/02_placeholder.mov,12.0,placeholder,Polymarket crypto 市场快切; BTC 5m up/down; YES 价格跳动
+03,video,media/shots/03_placeholder.mov,13.0,placeholder,三屏 chaos: Gamma + Excel + Telegram
+04,video,media/shots/04_placeholder.mov,10.0,placeholder,NOFX /prediction Live Console 周期+1
+05,video,media/shots/05_placeholder.mov,7.0,placeholder,标题卡: NOFX Prediction
+06,video,media/shots/06_placeholder.mov,10.0,placeholder,左手动流程 vs 右 NOFX 统一界面
+07,video,media/shots/07_placeholder.mov,13.0,placeholder,合约 vs 预测对比动画
+08,video,media/shots/08_placeholder.mov,14.0,placeholder,三分屏: 市场滚动 / edge 公式 / 流动性警告
+09,video,media/shots/09_placeholder.mov,13.0,placeholder,六步闭环流程图动画
+10,video,media/shots/10_placeholder.mov,25.0,placeholder,NOFX 各页面快切 0.5s
+11,video,media/shots/11_placeholder.mov,12.0,placeholder,Chapter 01 NOFX Platform
+12,video,media/shots/12_placeholder.mov,16.0,placeholder,设置页 AI 模型 + 交易所列表
+13,video,media/shots/13_placeholder.mov,14.0,placeholder,策略工作室 + 指标 + 风控
+14,video,media/shots/14_placeholder.mov,10.0,placeholder,竞赛页 Crypto Tab
+15,video,media/shots/15_placeholder.mov,18.0,placeholder,双链路架构动画 Crypto ∥ Prediction
+16,video,media/shots/16_placeholder.mov,20.0,placeholder,Header 点击预测市场 Beta → /prediction
+17,video,media/shots/17_placeholder.mov,8.0,placeholder,Chapter 02 五大核心优势
+18,video,media/shots/18_placeholder.mov,7.0,placeholder,优势①标题卡
+19,video,media/shots/19_placeholder.mov,20.0,placeholder,预测周期 8 步流程图
+20,video,media/shots/20_placeholder.mov,13.0,placeholder,决策历史展开 CoT; confidence edge 高亮
+21,video,media/shots/21_placeholder.mov,5.0,placeholder,小结字卡
+22,video,media/shots/22_placeholder.mov,7.0,placeholder,优势②标题卡
+23,video,media/shots/23_placeholder.mov,18.0,placeholder,三层阶梯 Simulation Preview Live(锁定)
+24,video,media/shots/24_placeholder.mov,7.0,placeholder,左: 先要私钥 vs 右: 先模拟再预览
+25,video,media/shots/25_placeholder.mov,7.0,placeholder,优势③标题卡
+26,video,media/shots/26_placeholder.mov,16.0,placeholder,创建表单风控参数扫过
+27,video,media/shots/27_placeholder.mov,10.0,placeholder,risk_blocked 决策红色 badge
+28,video,media/shots/28_placeholder.mov,7.0,placeholder,小结字卡
+29,video,media/shots/29_placeholder.mov,7.0,placeholder,优势④标题卡
+30,video,media/shots/30_placeholder.mov,16.0,placeholder,规则示例三条 + 引擎模式下拉
+31,video,media/shots/31_placeholder.mov,7.0,placeholder,小结字卡
+32,video,media/shots/32_placeholder.mov,7.0,placeholder,优势⑤标题卡
+33,video,media/shots/33_placeholder.mov,13.0,placeholder,市场浏览 Console 决策 SimPnL 竞赛 快切
+34,video,media/shots/34_placeholder.mov,7.0,placeholder,Chapter 03 Day One Demo
+35,video,media/shots/35_placeholder.mov,13.0,placeholder,登录 → 点击预测市场
+36,video,media/shots/36_placeholder.mov,20.0,placeholder,新建 Trader 全流程 Simulation
+37,video,media/shots/37_placeholder.mov,13.0,placeholder,运行单周期 Live Console
+38,video,media/shots/38_placeholder.mov,20.0,placeholder,决策历史 CoT buy_yes confidence edge
+39,video,media/shots/39_placeholder.mov,10.0,placeholder,三种执行 badge
+40,video,media/shots/40_placeholder.mov,17.0,placeholder,模拟 PnL 权益曲线 成交明细
+41,video,media/shots/41_placeholder.mov,10.0,placeholder,重置模拟账户
+42,video,media/shots/42_placeholder.mov,15.0,placeholder,Preview wire + 竞赛页 Prediction Tab
+43,video,media/shots/43_placeholder.mov,8.0,placeholder,Chapter 04 Security
+44,video,media/shots/44_placeholder.mov,14.0,placeholder,6条安全 bullet
+45,video,media/shots/45_placeholder.mov,13.0,placeholder,审计日志 + .env PREDICTION_LIVE_ENABLED=false
+46,video,media/shots/46_placeholder.mov,10.0,placeholder,免责声明滚动
+47,video,media/shots/47_placeholder.mov,10.0,placeholder,五大优势+演示高光回放
+48,video,media/shots/48_placeholder.mov,13.0,placeholder,CTA Logo 命令 /prediction
+49,video,media/shots/49_placeholder.mov,12.0,placeholder,落版主标语 + QR
+50,video,media/shots/50_placeholder.mov,10.0,placeholder,黑场 Logo
+01_片头,audio_vo,media/audio/VO_01_hook.wav,45.0,silence_placeholder,Record per narration.md → VO_01_hook
+02_痛点,audio_vo,media/audio/VO_02_pain.wav,75.0,silence_placeholder,Record per narration.md → VO_02_pain
+03_平台,audio_vo,media/audio/VO_03_platform.wav,90.0,silence_placeholder,Record per narration.md → VO_03_platform
+04_优势,audio_vo,media/audio/VO_04_advantages.wav,175.0,silence_placeholder,Record per narration.md → VO_04_advantages
+05_演示,audio_vo,media/audio/VO_05_demo.wav,125.0,silence_placeholder,Record per narration.md → VO_05_demo
+06_安全,audio_vo,media/audio/VO_06_security.wav,45.0,silence_placeholder,Record per narration.md → VO_06_security
+07_收束,audio_vo,media/audio/VO_07_outro.wav,45.0,silence_placeholder,Record per narration.md → VO_07_outro

@@ -13,7 +13,7 @@ import { t } from '../../i18n/translations'
 import { PunkAvatar, getTraderAvatar } from '../common/PunkAvatar'
 import { DeepVoidBackground } from '../common/DeepVoidBackground'
 import { tradingModeLabel } from '../prediction/utils'
-import { ROUTES } from '../../router/paths'
+import { buildPredictionPath } from '../../router/paths'
 
 type CompetitionTab = 'crypto' | 'prediction'
 
@@ -47,7 +47,7 @@ export function CompetitionPage() {
 
   const handleTraderClick = async (traderId: string) => {
     if (isPredictionTab) {
-      navigate(ROUTES.prediction)
+      navigate(buildPredictionPath(traderId))
       return
     }
     try {

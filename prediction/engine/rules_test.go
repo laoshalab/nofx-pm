@@ -100,3 +100,29 @@ func TestEvaluateRulesNoDualSide(t *testing.T) {
 		t.Fatalf("expected at most one buy per market, got %+v", decisions)
 	}
 }
+
+func TestEvaluateRulesTakeProfitSell(t *testing.T) {
+	ctx := &Context{
+		Positions: []types.OutcomePosition{
+			{
+				TokenID:    "y1",
+				MarketSlug: "btc-up",
+				Shares:     50,
+				AvgCost:    0.45,
+				MidPrice:   0.72,
+			},
+		},
+		CandidateMarkets: []MarketSnapshot{},
+	}
+	strat := predcfg.DefaultStrategyConfig()
+	strat.Rules.TakeProfitMid = 0.70
+	strat.Rules.DefaultSizeUsd = 15
+
+	decisions := EvaluateRules(ctx, strat)
+	if len(decisions) != 1 || decisions[0].Action != types.ActionSell {
+		t.Fatalf("expected take-profit sell, got %+v", decisions)
+	}
+	if decisions[0].TokenID != "y1" {
+		t.Fatalf("token = %q", decisions[0].TokenID)
+	}
+}

@@ -298,7 +298,7 @@ NOFX отслеживает значимые вклады и планирует 
 | | |
 | :--- | :--- |
 | Website | [vergex.trade](https://vergex.trade) |
-| Dashboard | [vergex.trade/explore](https://vergex.trade/explore) |
+| Agent | [nofxos.ai/agent](https://nofxos.ai/agent) |
 | Telegram | [nofx_dev_community](https://t.me/nofx_dev_community) |
 | Twitter | [@vergex_ai](https://x.com/vergex_ai) |
 

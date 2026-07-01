@@ -53,7 +53,7 @@ type Config struct {
 	AlpacaSecretKey string // Alpaca secret key
 	TwelveDataKey   string // TwelveData API key for forex & metals
 
-	// Prediction market safety (default off — enable explicitly for live trading)
+	// Prediction market (live enabled by default; set PREDICTION_LIVE_ENABLED=false to disable)
 	PredictionLiveEnabled            bool // PREDICTION_LIVE_ENABLED
 	PredictionAllowBrowserPrivateKey bool // PREDICTION_ALLOW_BROWSER_PRIVATE_KEY
 }
@@ -126,7 +126,11 @@ func initConfig() error {
 	cfg.AlpacaSecretKey = os.Getenv("ALPACA_SECRET_KEY")
 	cfg.TwelveDataKey = os.Getenv("TWELVEDATA_API_KEY")
 
-	cfg.PredictionLiveEnabled = strings.EqualFold(os.Getenv("PREDICTION_LIVE_ENABLED"), "true")
+	// Default enabled; set PREDICTION_LIVE_ENABLED=false to disable live CLOB orders.
+	cfg.PredictionLiveEnabled = true
+	if v := os.Getenv("PREDICTION_LIVE_ENABLED"); v != "" {
+		cfg.PredictionLiveEnabled = strings.EqualFold(v, "true")
+	}
 	cfg.PredictionAllowBrowserPrivateKey = strings.EqualFold(os.Getenv("PREDICTION_ALLOW_BROWSER_PRIVATE_KEY"), "true")
 
 	// Database configuration

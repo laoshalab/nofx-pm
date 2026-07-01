@@ -11,7 +11,9 @@ import (
 	"nofx/logger"
 	"nofx/manager"
 	predcfg "nofx/prediction/config"
+	"nofx/prediction/polymarket"
 	"nofx/prediction/sim"
+	predtrader "nofx/prediction/trader"
 	"nofx/prediction/types"
 	"nofx/store"
 
@@ -192,7 +194,7 @@ func (s *Server) handleCreatePredictionTrader(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ai_model_id"})
 		return
 	}
-	preview := true
+	preview := false
 	if req.PreviewMode != nil {
 		preview = *req.PreviewMode
 	}
@@ -208,8 +210,8 @@ func (s *Server) handleCreatePredictionTrader(c *gin.Context) {
 		if denyLiveModeRequest(c, tradingMode) {
 			return
 		}
-		if strings.TrimSpace(req.PrivateKey) == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "private_key required for live trading"})
+		if strings.TrimSpace(req.PrivateKey) == "" && polymarket.EnvPrivateKey() == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "private_key required for live trading (or set POLYMARKET_PRIVATE_KEY on server)"})
 			return
 		}
 		if rejectLiveBrowserPrivateKey(c, tradingMode, req.PrivateKey) {
@@ -238,6 +240,9 @@ func (s *Server) handleCreatePredictionTrader(c *gin.Context) {
 		scan = 5
 	}
 
+	proxyAddr := strings.TrimSpace(req.ProxyAddress)
+	sigType := polymarket.ResolveSignatureType(req.SignatureType, proxyAddr)
+
 	row := &store.PredictionTraderDB{
 		ID:                  uuid.New().String(),
 		UserID:              userID,
@@ -245,8 +250,8 @@ func (s *Server) handleCreatePredictionTrader(c *gin.Context) {
 		AIModelID:           req.AIModelID,
 		Venue:               venue,
 		PrivateKey:          crypto.EncryptedString(strings.TrimSpace(req.PrivateKey)),
-		ProxyAddress:        req.ProxyAddress,
-		SignatureType:       req.SignatureType,
+		ProxyAddress:        proxyAddr,
+		SignatureType:       sigType,
 		StrategyJSON:        store.MustStrategyJSON(strat),
 		ScanIntervalMinutes: scan,
 		PreviewMode:         tradingMode != store.PredictionTradingModeLive,
@@ -280,10 +285,8 @@ func (s *Server) handleUpdatePredictionTrader(c *gin.Context) {
 	}
 	row.Name = req.Name
 	row.AIModelID = req.AIModelID
-	row.ProxyAddress = req.ProxyAddress
-	if req.SignatureType > 0 {
-		row.SignatureType = req.SignatureType
-	}
+	row.ProxyAddress = strings.TrimSpace(req.ProxyAddress)
+	row.SignatureType = req.SignatureType
 	if req.ScanIntervalMinutes > 0 {
 		row.ScanIntervalMinutes = req.ScanIntervalMinutes
 	}
@@ -592,6 +595,46 @@ func (s *Server) handlePredictionRedeem(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"redeemed": len(results), "results": results})
 }
 
+type predictionSellRequest struct {
+	TokenID    string  `json:"token_id" binding:"required"`
+	SizeUsd    float64 `json:"size_usd"`
+	LimitPrice float64 `json:"limit_price"`
+}
+
+func (s *Server) handlePredictionSell(c *gin.Context) {
+	userID := c.GetString("user_id")
+	id := c.Param("id")
+	row, ok := s.ownedPredictionTrader(c, id)
+	if !ok {
+		return
+	}
+	if denyLiveTradingDisabled(c, row) {
+		return
+	}
+	var req predictionSellRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	_ = s.predictionManager.LoadUserTradersFromStore(s.store, userID)
+	pt, err := s.predictionManager.GetTrader(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	out := pt.SellPosition(req.TokenID, req.SizeUsd, req.LimitPrice)
+	if out.Status == "filled" || out.Status == "posted" || out.Status == "preview" {
+		if snap, ok := manager.BuildVenueForTrader(s.store, row).(interface {
+			RecordEquitySnapshot(cycleNumber int) error
+		}); ok {
+			_ = snap.RecordEquitySnapshot(0)
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"execution": redactExecutionOutcomes([]types.ExecutionOutcome{out})[0],
+	})
+}
+
 func (s *Server) handlePredictionSimPnL(c *gin.Context) {
 	userID := c.GetString("user_id")
 	id := c.Param("id")
@@ -758,38 +801,7 @@ func (s *Server) handlePredictionOrdersSync(c *gin.Context) {
 	}
 
 	venue := manager.BuildVenueForTrader(s.store, row)
-	records, _ := s.store.Prediction().ListOrderRecords(id, 100)
-	for _, rec := range records {
-		if rec.IsPreview || rec.OrderID == "" {
-			continue
-		}
-		if rec.Status == "filled" || rec.Status == "cancelled" || rec.Status == "canceled" {
-			continue
-		}
-		st, err := venue.GetOrderStatus(rec.OrderID)
-		if err != nil || st == nil {
-			continue
-		}
-		status := strings.ToLower(st.Status)
-		if st.SizeMatched > 0 && st.OriginalSize > 0 && st.SizeMatched >= st.OriginalSize {
-			status = "filled"
-		}
-		_ = s.store.Prediction().UpdateOrderStatus(id, rec.OrderID, status)
-	}
-
-	if openOrders, err := venue.ListOpenOrders(); err == nil {
-		for _, o := range openOrders {
-			_ = s.store.Prediction().SaveOrderRecord(&store.PredictionOrderRecordDB{
-				TraderID: id,
-				OrderID:  o.OrderID,
-				TokenID:  o.TokenID,
-				Side:     o.Side,
-				Price:    o.Price,
-				Size:     o.OriginalSize,
-				Status:   o.Status,
-			})
-		}
-	}
+	predtrader.SyncOrderRecordsFromCLOB(s.store, id, venue, nil)
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
 	includeWire := includeFullPreviewWire(c.Query("include_wire"))

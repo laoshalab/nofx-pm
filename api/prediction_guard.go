@@ -86,7 +86,9 @@ func rejectLiveWithoutPrivateKey(c *gin.Context, row *store.PredictionTraderDB, 
 	if row == nil || row.EffectiveTradingMode() != store.PredictionTradingModeLive {
 		return false
 	}
-	hasKey := row.PrivateKey.String() != "" || strings.TrimSpace(newPrivateKey) != ""
+	hasKey := row.PrivateKey.String() != "" ||
+		strings.TrimSpace(newPrivateKey) != "" ||
+		polymarket.EnvPrivateKey() != ""
 	if hasKey {
 		return false
 	}

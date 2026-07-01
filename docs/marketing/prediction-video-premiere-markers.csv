@@ -1,0 +1,8 @@
+Marker Name,Description,In,Out,Duration,Comment
+01_片头,Logo + Hook,00:00:00:00,00:00:45:00,00:00:45:00,VO_01_hook
+02_痛点,Problem setup,00:00:45:00,00:02:00:00,00:01:15:00,VO_02_pain
+03_平台,NOFX platform intro,00:02:00:00,00:03:30:00,00:01:30:00,VO_03_platform
+04_优势,5 advantages,00:03:30:00,00:06:25:00,00:02:55:00,VO_04_advantages
+05_演示,Day one demo,00:06:25:00,00:08:30:00,00:02:05:00,VO_05_demo
+06_安全,Security + disclaimer,00:08:30:00,00:09:15:00,00:00:45:00,VO_06_security
+07_收束,CTA + outro,00:09:15:00,00:10:00:00,00:00:45:00,VO_07_outro

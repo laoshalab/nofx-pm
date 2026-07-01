@@ -399,6 +399,15 @@ export const predictionApi = {
     return result.data as { redeemed: number; results: unknown[] }
   },
 
+  async sellPosition(
+    id: string,
+    body: { token_id: string; size_usd?: number; limit_price?: number }
+  ): Promise<{ execution: PredictionExecutionOutcome }> {
+    const result = await httpClient.post(`${API_BASE}/prediction/traders/${id}/sell`, body)
+    if (!result.success) throw new Error(result.message || 'Sell failed')
+    return result.data as { execution: PredictionExecutionOutcome }
+  },
+
   async getSimPnL(id: string, limit = 100): Promise<PredictionSimPnL> {
     const result = await httpClient.get<PredictionSimPnL>(
       `${API_BASE}/prediction/traders/${id}/sim/pnl?limit=${limit}`

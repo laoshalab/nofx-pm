@@ -113,10 +113,7 @@ func (pt *PredictionTrader) Run() error {
 	defer ticker.Stop()
 
 	if sec := pt.cfg.Strategy.FastLoopSec; sec > 0 {
-		mode := pt.effectiveMode()
-		if mode == config.ModeRules || mode == config.ModeHybrid {
-			go pt.runFastLoop(sec)
-		}
+		go pt.runFastLoop(sec)
 	}
 
 	// First cycle immediately
@@ -197,6 +194,7 @@ func (pt *PredictionTrader) runCycle() (*engine.FullDecision, error) {
 	}
 	if err != nil {
 		pt.saveFailedCycleRecord(decision, err)
+		pt.notifyCycleFailed(err)
 		decCount := 0
 		if decision != nil {
 			decCount = len(decision.Decisions)
@@ -225,6 +223,7 @@ func (pt *PredictionTrader) runCycle() (*engine.FullDecision, error) {
 	}
 	decision.Executions = executions
 	pt.saveDecisionRecord(decision, err)
+	pt.syncOrdersAfterCycle()
 	pt.recordCycleTelemetry(cycleStart, len(decision.Decisions), len(executions), nil)
 
 	if decision != nil {

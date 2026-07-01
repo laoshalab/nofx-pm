@@ -2,6 +2,7 @@ package polymarket
 
 import (
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -70,7 +71,55 @@ func MergeEnvConfig(cfg Config) Config {
 	if v := strings.TrimSpace(os.Getenv("POLYMARKET_REDEEM_USDCE")); v != "" {
 		cfg.RedeemUSDCe = strings.EqualFold(v, "true") || v == "1"
 	}
+	if strings.TrimSpace(cfg.PrivateKey) == "" {
+		cfg.PrivateKey = EnvPrivateKey()
+	}
+	if strings.TrimSpace(cfg.ProxyAddress) == "" {
+		if v := strings.TrimSpace(os.Getenv("POLYMARKET_PROXY_ADDRESS")); v != "" {
+			cfg.ProxyAddress = v
+		}
+	}
+	if st, ok := EnvSignatureType(); ok && cfg.SignatureType == 0 {
+		cfg.SignatureType = st
+	}
 	return cfg
+}
+
+// EnvSignatureType reads POLYMARKET_SIGNATURE_TYPE (0–3). Second value is false when unset/invalid.
+func EnvSignatureType() (int, bool) {
+	v := strings.TrimSpace(os.Getenv("POLYMARKET_SIGNATURE_TYPE"))
+	if v == "" {
+		return 0, false
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || n < 0 || n > 3 {
+		return 0, false
+	}
+	return n, true
+}
+
+// ResolveSignatureType picks CLOB signature type: row > env > proxy wallet (2) > EOA (0).
+func ResolveSignatureType(rowSignatureType int, proxyAddress string) int {
+	if rowSignatureType != 0 {
+		return rowSignatureType
+	}
+	if st, ok := EnvSignatureType(); ok {
+		return st
+	}
+	if strings.TrimSpace(proxyAddress) != "" {
+		return 2
+	}
+	return 0
+}
+
+// EnvPrivateKey returns POLYMARKET_PRIVATE_KEY from the environment (never logged).
+func EnvPrivateKey() string {
+	return strings.TrimSpace(os.Getenv("POLYMARKET_PRIVATE_KEY"))
+}
+
+// ServerWalletConfigured reports whether a server-side Polymarket key is available.
+func ServerWalletConfigured() bool {
+	return EnvPrivateKey() != ""
 }
 
 // SignatureTypeForOrder returns the CLOB signature type for order signing.

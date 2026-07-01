@@ -1005,34 +1005,6 @@ export const translations = {
     // Data Page
     dataCenter: 'Data Center',
 
-    // Strategy Market Page
-    strategyMarket: {
-      title: 'STRATEGY MARKET',
-      subtitle: 'GLOBAL STRATEGY DATABASE',
-      description: 'Discover, analyze, and clone high-performance trading algorithms',
-      search: 'SEARCH PARAMETERS...',
-      all: 'ALL PROTOCOLS',
-      popular: 'TRENDING',
-      recent: 'LATEST',
-      myStrategies: 'MY LIBRARY',
-      noStrategies: 'NO SIGNAL',
-      noStrategiesDesc: 'No strategic signals detected in this frequency',
-      author: 'OPERATOR',
-      createdAt: 'TIMESTAMP',
-      viewConfig: 'DECRYPT CONFIG',
-      hideConfig: 'ENCRYPT',
-      copyConfig: 'CLONE CONFIG',
-      copied: 'COPIED',
-      configHidden: 'ENCRYPTED',
-      configHiddenDesc: 'Configuration parameters encrypted',
-      indicators: 'INDICATORS',
-      maxPositions: 'POS_LIMIT',
-      maxLeverage: 'LEV_MAX',
-      shareYours: 'UPLOAD_STRATEGY',
-      makePublic: 'PUBLISH',
-      loading: 'INITIALIZING...',
-    },
-
     // Strategy Studio Page
     strategyStudio: {
       title: 'Strategy Studio',
@@ -2325,34 +2297,6 @@ export const translations = {
     // Data Page
     dataCenter: '数据中心',
 
-    // Strategy Market Page
-    strategyMarket: {
-      title: '策略市场',
-      subtitle: 'STRATEGY MARKETPLACE',
-      description: '发现、学习并复用社区精英交易员的策略配置',
-      search: '搜索参数...',
-      all: '全部协议',
-      popular: '热门配置',
-      recent: '最新提交',
-      myStrategies: '我的库',
-      noStrategies: '无信号',
-      noStrategiesDesc: '当前频段未检测到策略信号',
-      author: 'OPERATOR',
-      createdAt: 'TIMESTAMP',
-      viewConfig: 'DECRYPT CONFIG',
-      hideConfig: 'ENCRYPT',
-      copyConfig: 'CLONE CONFIG',
-      copied: 'COPIED',
-      configHidden: 'ENCRYPTED',
-      configHiddenDesc: '配置参数已加密',
-      indicators: 'INDICATORS',
-      maxPositions: 'POS_LIMIT',
-      maxLeverage: 'LEV_MAX',
-      shareYours: 'UPLOAD_STRATEGY',
-      makePublic: 'PUBLISH',
-      loading: 'INITIALIZING...',
-    },
-
     // Strategy Studio Page
     strategyStudio: {
       title: '策略工作室',
@@ -3446,34 +3390,6 @@ export const translations = {
 
     // Data Page
     dataCenter: 'Data Center',
-
-    // Strategy Market Page
-    strategyMarket: {
-      title: 'PASAR STRATEGI',
-      subtitle: 'DATABASE STRATEGI GLOBAL',
-      description: 'Temukan, analisis, dan kloning algoritma trading berperforma tinggi',
-      search: 'CARI PARAMETER...',
-      all: 'SEMUA PROTOKOL',
-      popular: 'TREN',
-      recent: 'TERBARU',
-      myStrategies: 'PERPUSTAKAAN SAYA',
-      noStrategies: 'TIDAK ADA SINYAL',
-      noStrategiesDesc: 'Tidak ada sinyal strategis terdeteksi pada frekuensi ini',
-      author: 'OPERATOR',
-      createdAt: 'TIMESTAMP',
-      viewConfig: 'DEKRIPSI CONFIG',
-      hideConfig: 'ENKRIPSI',
-      copyConfig: 'KLON CONFIG',
-      copied: 'DISALIN',
-      configHidden: 'TERENKRIPSI',
-      configHiddenDesc: 'Parameter konfigurasi terenkripsi',
-      indicators: 'INDIKATOR',
-      maxPositions: 'BATAS_POS',
-      maxLeverage: 'LEV_MAKS',
-      shareYours: 'UNGGAH_STRATEGI',
-      makePublic: 'PUBLIKASI',
-      loading: 'MENGINISIALISASI...',
-    },
 
     // Strategy Studio Page
     strategyStudio: {

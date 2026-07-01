@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 )
 
 func (e *PredictionEngine) BuildSystemPrompt() string {
@@ -97,6 +98,19 @@ func (e *PredictionEngine) BuildUserPrompt(ctx *Context) string {
 		sb.WriteString("\n")
 	}
 
+	if len(ctx.SpotQuotes) > 0 {
+		if zh {
+			sb.WriteString("## 现货参考\n\n")
+		} else {
+			sb.WriteString("## Spot reference\n\n")
+		}
+		for _, q := range ctx.SpotQuotes {
+			fmt.Fprintf(&sb, "- %s: $%.2f | 5m %+.2f%% | 24h %+.2f%%\n",
+				q.Symbol, q.Price, q.Change5mPct, q.Change24hPct)
+		}
+		sb.WriteString("\n")
+	}
+
 	if zh {
 		sb.WriteString("## 候选市场\n\n")
 	} else {
@@ -105,8 +119,34 @@ func (e *PredictionEngine) BuildUserPrompt(ctx *Context) string {
 	for _, snap := range ctx.CandidateMarkets {
 		m := snap.Market
 		fmt.Fprintf(&sb, "### %s\n", m.Question)
-		fmt.Fprintf(&sb, "slug: %s | liquidity: $%.0f | neg_risk: %v\n", m.Slug, m.Liquidity, m.NegRisk)
-		fmt.Fprintf(&sb, "YES mid: %.4f | NO mid: %.4f\n\n", snap.YesMid, snap.NoMid)
+		fmt.Fprintf(&sb, "slug: %s | liquidity: $%.0f | neg_risk: %v", m.Slug, m.Liquidity, m.NegRisk)
+		if m.Volume24h > 0 {
+			fmt.Fprintf(&sb, " | 24h vol: $%.0f", m.Volume24h)
+		}
+		sb.WriteString("\n")
+		if !m.EndDate.IsZero() {
+			hours := time.Until(m.EndDate).Hours()
+			if zh {
+				fmt.Fprintf(&sb, "结算: %s (约 %.1f 小时后)\n", m.EndDate.UTC().Format(time.RFC3339), hours)
+			} else {
+				fmt.Fprintf(&sb, "expires: %s (~%.1f h left)\n", m.EndDate.UTC().Format(time.RFC3339), hours)
+			}
+		}
+		fmt.Fprintf(&sb, "YES mid: %.4f | NO mid: %.4f", snap.YesMid, snap.NoMid)
+		if snap.Spread != 0 {
+			fmt.Fprintf(&sb, " | spread: %.4f", snap.Spread)
+		}
+		sb.WriteString("\n")
+		if snap.YesBook.BestBid > 0 || snap.YesBook.BestAsk > 0 {
+			if zh {
+				fmt.Fprintf(&sb, "YES 订单簿: bid %.4f (深度 %.0f) | ask %.4f (深度 %.0f)\n",
+					snap.YesBook.BestBid, snap.YesBook.BidDepth, snap.YesBook.BestAsk, snap.YesBook.AskDepth)
+			} else {
+				fmt.Fprintf(&sb, "YES book: bid %.4f (depth %.0f) | ask %.4f (depth %.0f)\n",
+					snap.YesBook.BestBid, snap.YesBook.BidDepth, snap.YesBook.BestAsk, snap.YesBook.AskDepth)
+			}
+		}
+		sb.WriteString("\n")
 	}
 
 	if len(ctx.RecentDecisions) > 0 {

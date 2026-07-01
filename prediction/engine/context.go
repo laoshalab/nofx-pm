@@ -7,6 +7,7 @@ import (
 
 	"nofx/logger"
 	"nofx/prediction/config"
+	"nofx/prediction/spot"
 	"nofx/prediction/types"
 )
 
@@ -16,6 +17,7 @@ type MarketSnapshot struct {
 	YesMid   float64      `json:"yes_mid"`
 	NoMid    float64      `json:"no_mid"`
 	Spread   float64      `json:"spread,omitempty"`
+	YesBook  BookSummary  `json:"yes_book,omitempty"`
 }
 
 // Context is passed to the AI for one prediction cycle.
@@ -29,6 +31,7 @@ type Context struct {
 	Positions        []types.OutcomePosition    `json:"positions"`
 	CandidateMarkets []MarketSnapshot           `json:"candidate_markets"`
 	RecentDecisions  []types.PredictionDecision `json:"recent_decisions,omitempty"`
+	SpotQuotes       map[string]spot.Quote      `json:"spot_quotes,omitempty"`
 }
 
 // FullDecision is the complete AI output for one cycle.
@@ -132,6 +135,11 @@ func (e *PredictionEngine) GetCandidateMarkets() ([]MarketSnapshot, error) {
 		}
 		if snap.YesMid > 0 && snap.NoMid > 0 {
 			snap.Spread = snap.YesMid + snap.NoMid - 1
+		}
+		if m.YesTokenID != "" {
+			if book, err := e.venue.GetOrderBook(m.YesTokenID); err == nil && book != nil {
+				snap.YesBook = summarizeBook(book)
+			}
 		}
 		out = append(out, snap)
 		seen[m.Slug] = true

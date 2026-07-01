@@ -54,6 +54,13 @@ func (pt *PredictionTrader) executeDecisionWithOutcome(d *types.PredictionDecisi
 		out.Message = "redeem submitted"
 		return out
 	case types.ActionBuyYes, types.ActionBuyNo, types.ActionSell:
+		if d.Action == types.ActionSell {
+			if err := pt.normalizeSellDecision(d); err != nil {
+				out.Status = "error"
+				out.Message = err.Error()
+				return out
+			}
+		}
 		if err := pt.riskGate.CheckDecision(d); err != nil {
 			out.Status = "risk_blocked"
 			out.Message = err.Error()
@@ -161,9 +168,7 @@ func (pt *PredictionTrader) executeTradeOutcome(d *types.PredictionDecision) typ
 		}
 		pt.riskGate.RecordFill(fillUsd)
 		pt.recordFillVolume(fillUsd)
-		if d.Action == types.ActionBuyYes || d.Action == types.ActionBuyNo {
-			pt.riskGate.AddMarketExposure(d.MarketSlug, fillUsd)
-		}
+		pt.applyFillExposure(d, fillUsd)
 		pt.logInfof("order %s filled $%.2f", result.OrderID, fillUsd)
 		out.Status = "filled"
 		out.FillUsd = fillUsd
@@ -176,9 +181,7 @@ func (pt *PredictionTrader) executeTradeOutcome(d *types.PredictionDecision) typ
 	if filled {
 		pt.riskGate.RecordFill(fillUsd)
 		pt.recordFillVolume(fillUsd)
-		if d.Action == types.ActionBuyYes || d.Action == types.ActionBuyNo {
-			pt.riskGate.AddMarketExposure(d.MarketSlug, fillUsd)
-		}
+		pt.applyFillExposure(d, fillUsd)
 		pt.logInfof("order %s filled $%.2f", result.OrderID, fillUsd)
 		out.Status = "filled"
 		out.FillUsd = fillUsd
@@ -255,4 +258,16 @@ func truncateToken(id string) string {
 		return id
 	}
 	return id[:6] + "..." + id[len(id)-4:]
+}
+
+func (pt *PredictionTrader) applyFillExposure(d *types.PredictionDecision, fillUsd float64) {
+	if fillUsd <= 0 || d == nil {
+		return
+	}
+	switch d.Action {
+	case types.ActionBuyYes, types.ActionBuyNo:
+		pt.riskGate.AddMarketExposure(d.MarketSlug, fillUsd)
+	case types.ActionSell:
+		pt.riskGate.ReduceMarketExposure(d.MarketSlug, fillUsd)
+	}
 }

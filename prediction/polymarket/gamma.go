@@ -101,16 +101,17 @@ func matchKeywords(m *types.Market, keywords []string) bool {
 
 
 type gammaMarket struct {
-	ID           string  `json:"id"`
-	Slug         string  `json:"slug"`
-	Question     string  `json:"question"`
-	ConditionID  string  `json:"conditionId"`
-	EndDate      string  `json:"endDate"`
-	Closed       bool    `json:"closed"`
-	NegRisk      bool    `json:"negRisk"`
-	ClobTokenIds string  `json:"clobTokenIds"`
-	Volume24hr   float64 `json:"volume24hr"`
-	Liquidity    float64 `json:"liquidityNum"`
+	ID            string  `json:"id"`
+	Slug          string  `json:"slug"`
+	Question      string  `json:"question"`
+	ConditionID   string  `json:"conditionId"`
+	EndDate       string  `json:"endDate"`
+	Closed        bool    `json:"closed"`
+	NegRisk       bool    `json:"negRisk"`
+	ClobTokenIds  string  `json:"clobTokenIds"`
+	OutcomePrices string  `json:"outcomePrices"`
+	Volume24hr    float64 `json:"volume24hr"`
+	Liquidity     float64 `json:"liquidityNum"`
 }
 
 func (g gammaMarket) toMarket() *types.Market {
@@ -120,19 +121,48 @@ func (g gammaMarket) toMarket() *types.Market {
 		end, _ = time.Parse(time.RFC3339, g.EndDate)
 	}
 	return &types.Market{
-		Venue:       "polymarket",
-		ID:          g.ID,
-		Slug:        g.Slug,
-		Question:    g.Question,
-		ConditionID: g.ConditionID,
-		EndDate:     end,
-		Closed:      g.Closed,
-		NegRisk:     g.NegRisk,
-		YesTokenID:  yes,
-		NoTokenID:   no,
-		Volume24h:   g.Volume24hr,
-		Liquidity:   g.Liquidity,
+		Venue:         "polymarket",
+		ID:            g.ID,
+		Slug:          g.Slug,
+		Question:      g.Question,
+		ConditionID:   g.ConditionID,
+		EndDate:       end,
+		Closed:        g.Closed,
+		NegRisk:       g.NegRisk,
+		YesTokenID:    yes,
+		NoTokenID:     no,
+		Volume24h:     g.Volume24hr,
+		Liquidity:     g.Liquidity,
+		OutcomePrices: parseOutcomePrices(g.OutcomePrices),
 	}
+}
+
+func parseOutcomePrices(raw string) []float64 {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+	var parts []string
+	if strings.HasPrefix(raw, "[") {
+		if err := json.Unmarshal([]byte(raw), &parts); err != nil {
+			return nil
+		}
+	} else {
+		parts = strings.Split(raw, ",")
+	}
+	out := make([]float64, 0, len(parts))
+	for _, p := range parts {
+		p = strings.Trim(p, `" `)
+		if p == "" {
+			continue
+		}
+		v, err := strconv.ParseFloat(p, 64)
+		if err != nil {
+			continue
+		}
+		out = append(out, v)
+	}
+	return out
 }
 
 func parseTokenIDs(raw string) (yes, no string) {

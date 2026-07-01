@@ -51,7 +51,29 @@ go run ./cmd/polymarket order \
   -token <clob_token_id> -side buy -price 0.55 -size 10 -preview
 ```
 
-### M2 — AI 决策单周期
+### Live E2E 验收（CI / 本地）
+
+主网 ≤$1 限价单 **Preview 签名 + Live 下单/取消**：
+
+```bash
+POLYMARKET_LIVE_E2E=1 POLYMARKET_PRIVATE_KEY=0x... \
+  go test -v -count=1 ./prediction/polymarket -run TestLiveMainnetE2E -timeout 5m
+```
+
+CI workflow：`.github/workflows/prediction-live-e2e.yml`（仓库 secret `POLYMARKET_PRIVATE_KEY`）。
+
+### M2 — AI 决策 + 自动 Live CLOB
+
+```bash
+export DEEPSEEK_API_KEY=sk-...
+export POLYMARKET_PRIVATE_KEY=0x...   # 服务端钱包，Web 无需上传
+
+go run ./cmd/prediction cycle -provider deepseek -tag crypto -live
+```
+
+Web：创建 Live Trader → 自动启动 → AI 每 60s（FastLoop）+ 每 N 分钟主周期向 CLOB 下单。
+
+### M2 — AI 决策单周期（Preview / Sim）
 
 ```bash
 export DEEPSEEK_API_KEY=sk-...
@@ -83,11 +105,11 @@ Prediction 模块 **不影响** 原有 crypto 交易路径；Web 入口：`/pred
 
 ## 生产安全（P0）
 
-默认配置下 **仅开放模拟 + Preview**，Live 实盘需显式启用：
+默认配置下 **Live 已启用**；若需关闭实盘，在 `.env` 设置 `PREDICTION_LIVE_ENABLED=false`：
 
 ```bash
-# .env — 开发/内网如需 Live（谨慎）
-PREDICTION_LIVE_ENABLED=true
+# .env — 关闭 Live 实盘（推荐生产环境若仅做模拟/Preview）
+PREDICTION_LIVE_ENABLED=false
 PREDICTION_ALLOW_BROWSER_PRIVATE_KEY=true   # 生产建议 false，私钥服务端配置
 ```
 
@@ -95,7 +117,7 @@ PREDICTION_ALLOW_BROWSER_PRIVATE_KEY=true   # 生产建议 false，私钥服务�
 |------|----------|------|
 | simulation | ✅ | 虚拟 USDC，无链上风险 |
 | preview | ✅ | EIP-712 签名，不 POST 订单 |
-| live | ❌ | 需 `PREDICTION_LIVE_ENABLED=true` |
+| live | ✅ | 默认启用；设 `PREDICTION_LIVE_ENABLED=false` 可关闭 |
 
 Live redeem 已接入（Proxy/Safe 需 `POLYMARKET_BUILDER_*`，EOA 可走 `POLYGON_RPC_URL` 直发）。默认 redeem 到 pUSD adapter；`POLYMARKET_REDEEM_USDCE=true` 走 legacy USDC.e。
 

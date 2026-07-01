@@ -4,6 +4,9 @@ export interface SystemConfig {
   prediction_live_enabled?: boolean
   prediction_live_redeem_enabled?: boolean
   prediction_allow_browser_private_key?: boolean
+  prediction_server_wallet_configured?: boolean
+  prediction_env_signature_type?: number
+  prediction_env_signature_type_set?: boolean
 }
 
 let configPromise: Promise<SystemConfig> | null = null

@@ -298,7 +298,7 @@ NOFX ghi nhận các đóng góp có ý nghĩa và dự định thưởng cho co
 | | |
 | :--- | :--- |
 | Website | [vergex.trade](https://vergex.trade) |
-| Dashboard | [vergex.trade/explore](https://vergex.trade/explore) |
+| Agent | [nofxos.ai/agent](https://nofxos.ai/agent) |
 | Telegram | [nofx_dev_community](https://t.me/nofx_dev_community) |
 | Twitter | [@vergex_ai](https://x.com/vergex_ai) |
 

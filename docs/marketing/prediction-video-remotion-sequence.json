@@ -1,0 +1,34 @@
+{
+  "meta": {
+    "title": "NOFX Prediction Marketing Video",
+    "fps": 30,
+    "width": 1920,
+    "height": 1080,
+    "durationInFrames": 18000,
+    "durationSec": 600
+  },
+  "audioTracks": [
+    { "id": "bgm", "src": "assets/bgm/dark_pad.mp3", "volume": 0.35 },
+    { "id": "vo_01", "src": "assets/vo/VO_01_hook.wav", "startFrame": 90 },
+    { "id": "vo_02", "src": "assets/vo/VO_02_pain.wav", "startFrame": 1650 },
+    { "id": "vo_03", "src": "assets/vo/VO_03_platform.wav", "startFrame": 3600 },
+    { "id": "vo_04", "src": "assets/vo/VO_04_advantages.wav", "startFrame": 6540 },
+    { "id": "vo_05", "src": "assets/vo/VO_05_demo.wav", "startFrame": 11760 },
+    { "id": "vo_06", "src": "assets/vo/VO_06_security.wav", "startFrame": 15540 },
+    { "id": "vo_07", "src": "assets/vo/VO_07_outro.wav", "startFrame": 16650 }
+  ],
+  "sequences": [
+    { "from": 0, "durationInFrames": 90, "component": "TitleCard", "props": { "title": "NOFX" } },
+    { "from": 90, "durationInFrames": 360, "component": "Montage", "props": { "variant": "hook" } },
+    { "from": 450, "durationInFrames": 390, "component": "SplitScreen", "props": { "variant": "pain_chaos" } },
+    { "from": 840, "durationInFrames": 300, "component": "ScreenCapture", "props": { "route": "/prediction", "highlight": "live_console" } },
+    { "from": 1140, "durationInFrames": 210, "component": "TitleCard", "props": { "title": "NOFX Prediction", "subtitle": "AI × Polymarket" } },
+    { "from": 1350, "durationInFrames": 2250, "component": "ChapterBlock", "props": { "chapter": "pain_and_platform" } },
+    { "from": 3600, "durationInFrames": 2700, "component": "ChapterBlock", "props": { "chapter": "platform" } },
+    { "from": 6300, "durationInFrames": 5250, "component": "ChapterBlock", "props": { "chapter": "advantages" } },
+    { "from": 11550, "durationInFrames": 3750, "component": "ChapterBlock", "props": { "chapter": "demo" } },
+    { "from": 15300, "durationInFrames": 1350, "component": "ChapterBlock", "props": { "chapter": "security" } },
+    { "from": 16650, "durationInFrames": 1350, "component": "Outro", "props": { "cta": true } }
+  ],
+  "importNote": "Import prediction-video-timeline.csv for per-shot detail. Map remotion_component + remotion_props_json columns to Composition registry."
+}

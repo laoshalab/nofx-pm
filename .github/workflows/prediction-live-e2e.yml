@@ -1,0 +1,59 @@
+name: Prediction Live E2E
+
+# Polymarket mainnet acceptance: Preview sign + ≤$1 limit order place/cancel.
+# Requires repository secrets (Settings → Secrets → Actions):
+#   POLYMARKET_PRIVATE_KEY  — funded Polymarket wallet (EOA or proxy signer)
+# Optional secrets / variables:
+#   POLYMARKET_PROXY_ADDRESS       — proxy/funder when not EOA-direct
+#   POLYMARKET_E2E_MARKET_SLUG     — repo variable; fixed market slug
+#   POLYMARKET_E2E_MAX_USD         — repo variable; default 1
+#   POLYMARKET_SIGNATURE_TYPE      — repo variable; 0=EOA, 2=Safe/proxy
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly Monday 06:00 UTC
+    - cron: '0 6 * * 1'
+  push:
+    branches: [main]
+    paths:
+      - 'prediction/polymarket/**'
+      - '.github/workflows/prediction-live-e2e.yml'
+
+concurrency:
+  group: prediction-live-e2e
+  cancel-in-progress: true
+
+jobs:
+  polymarket-live-e2e:
+    name: Polymarket Live ≤$1 E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Run live E2E (skip if secrets missing)
+        env:
+          POLYMARKET_LIVE_E2E: '1'
+          POLYMARKET_PRIVATE_KEY: ${{ secrets.POLYMARKET_PRIVATE_KEY }}
+          POLYMARKET_PROXY_ADDRESS: ${{ secrets.POLYMARKET_PROXY_ADDRESS }}
+          POLYMARKET_E2E_MARKET_SLUG: ${{ vars.POLYMARKET_E2E_MARKET_SLUG }}
+          POLYMARKET_E2E_MAX_USD: ${{ vars.POLYMARKET_E2E_MAX_USD }}
+          POLYMARKET_SIGNATURE_TYPE: ${{ vars.POLYMARKET_SIGNATURE_TYPE }}
+        run: |
+          if [ -z "${POLYMARKET_PRIVATE_KEY}" ]; then
+            echo "::warning::POLYMARKET_PRIVATE_KEY not configured — skipping live E2E"
+            go test -v -count=1 -timeout 2m ./prediction/polymarket -run TestLiveMainnetE2E
+            exit 0
+          fi
+          go test -v -count=1 -timeout 5m ./prediction/polymarket -run TestLiveMainnetE2E

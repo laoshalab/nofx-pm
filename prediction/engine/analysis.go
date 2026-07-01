@@ -10,6 +10,7 @@ import (
 	"nofx/logger"
 	"nofx/mcp"
 	"nofx/prediction/config"
+	"nofx/prediction/spot"
 	"nofx/prediction/types"
 )
 
@@ -231,6 +232,16 @@ func BuildContext(venue types.PredictionVenue, eng *PredictionEngine, callCount,
 	if err != nil {
 		return nil, err
 	}
+
+	spotQuotes := map[string]spot.Quote{}
+	if sym := strings.TrimSpace(eng.cfg.Rules.SpotSymbol); sym != "" {
+		if q, err := spot.FetchQuote(sym); err == nil {
+			spotQuotes[q.Symbol] = q
+		} else {
+			logger.Warnf("[prediction] spot quote %s: %v", sym, err)
+		}
+	}
+
 	return &Context{
 		CurrentTime:      time.Now().UTC().Format(time.RFC3339),
 		RuntimeMinutes:   runtimeMin,
@@ -241,6 +252,7 @@ func BuildContext(venue types.PredictionVenue, eng *PredictionEngine, callCount,
 		Positions:        positions,
 		CandidateMarkets: candidates,
 		RecentDecisions:  recent,
+		SpotQuotes:       spotQuotes,
 	}, nil
 }
 

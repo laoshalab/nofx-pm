@@ -164,7 +164,7 @@ func main() {
 	}()
 
 	// Start Telegram bot (if TELEGRAM_BOT_TOKEN is configured)
-	go telegram.Start(cfg, st, telegramReloadCh)
+	go telegram.Start(cfg, st, predictionManager, telegramReloadCh)
 
 	// Wait for interrupt signal
 	quit := make(chan os.Signal, 1)

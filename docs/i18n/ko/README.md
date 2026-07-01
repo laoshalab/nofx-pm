@@ -298,7 +298,7 @@ NOFX는 의미 있는 기여를 기록하며 생태계 성장에 따라 기여�
 | | |
 | :--- | :--- |
 | Website | [vergex.trade](https://vergex.trade) |
-| Dashboard | [vergex.trade/explore](https://vergex.trade/explore) |
+| Agent | [nofxos.ai/agent](https://nofxos.ai/agent) |
 | Telegram | [nofx_dev_community](https://t.me/nofx_dev_community) |
 | Twitter | [@vergex_ai](https://x.com/vergex_ai) |
 

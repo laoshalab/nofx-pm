@@ -32,6 +32,7 @@ Thumbs.db
 
 # 环境变量
 .env
+docs/marketing/marketing.env
 config.json
 configbak.json
 

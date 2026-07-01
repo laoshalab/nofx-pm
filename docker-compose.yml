@@ -4,6 +4,8 @@ services:
     build:
       context: .
       dockerfile: ./docker/Dockerfile.backend
+      args:
+        REGISTRY: ${DOCKER_REGISTRY:-docker.m.daocloud.io/library}
     container_name: nofx-trading
     restart: unless-stopped
     stop_grace_period: 30s  # Allow the app 30 seconds for graceful shutdown
@@ -25,6 +27,8 @@ services:
     environment:
       - TZ=${TZ:-Asia/Shanghai}
       - AI_MAX_TOKENS=8000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - nofx-network
     healthcheck:
@@ -39,6 +43,8 @@ services:
     build:
       context: .
       dockerfile: ./docker/Dockerfile.frontend
+      args:
+        REGISTRY: ${DOCKER_REGISTRY:-docker.m.daocloud.io/library}
     container_name: nofx-frontend
     restart: unless-stopped
     ports:

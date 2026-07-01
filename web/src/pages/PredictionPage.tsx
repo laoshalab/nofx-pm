@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import useSWR from 'swr'
 import {
   predictionApi,
@@ -33,15 +34,18 @@ import {
 } from '../components/prediction/utils'
 
 export function PredictionPage() {
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const traderFromUrl = searchParams.get('trader')
+  const [selectedId, setSelectedId] = useState<string | null>(traderFromUrl)
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [newName, setNewName] = useState('Poly Crypto')
   const [newModelId, setNewModelId] = useState('')
   const [engineMode, setEngineMode] = useState<'ai' | 'rules' | 'hybrid'>('ai')
-  const [tradingMode, setTradingMode] = useState<'simulation' | 'preview' | 'live'>('simulation')
+  const [tradingMode, setTradingMode] = useState<'simulation' | 'preview' | 'live'>('live')
   const [privateKey, setPrivateKey] = useState('')
   const [proxyAddress, setProxyAddress] = useState('')
+  const [signatureType, setSignatureType] = useState(2)
   const [simBalance, setSimBalance] = useState(10000)
   const [simSlippageBps, setSimSlippageBps] = useState(0)
   const [scanInterval, setScanInterval] = useState(5)
@@ -54,12 +58,23 @@ export function PredictionPage() {
     keyword: string
   } | null>(null)
   const [maxBuyYesPrice, setMaxBuyYesPrice] = useState(0.45)
+  const [maxBuyNoPrice, setMaxBuyNoPrice] = useState(0)
   const [defaultSizeUsd, setDefaultSizeUsd] = useState(10)
   const [maxSpread, setMaxSpread] = useState(0.05)
+  const [takeProfitMid, setTakeProfitMid] = useState(0)
+  const [sellSizeUsd, setSellSizeUsd] = useState(0)
   const [minLiquidityUsd, setMinLiquidityUsd] = useState(500)
+  const [minHoursToExpiry, setMinHoursToExpiry] = useState(0.25)
+  const [fastLoopSec, setFastLoopSec] = useState(60)
+  const [strategyKeywords, setStrategyKeywords] = useState('')
+  const [spotSymbol, setSpotSymbol] = useState('')
+  const [spotMinChangePct, setSpotMinChangePct] = useState(0.1)
   const [maxOrderUsd, setMaxOrderUsd] = useState(50)
   const [maxDailyVolumeUsd, setMaxDailyVolumeUsd] = useState(500)
   const [maxPositionMarketUsd, setMaxPositionMarketUsd] = useState(200)
+  const [maxOpenMarkets, setMaxOpenMarkets] = useState(10)
+  const [minPrice, setMinPrice] = useState(0.05)
+  const [maxPrice, setMaxPrice] = useState(0.95)
   const [minEdgePct, setMinEdgePct] = useState(2)
   const [minConfidence, setMinConfidence] = useState(70)
   const [expandedPreview, setExpandedPreview] = useState<string | null>(null)
@@ -77,11 +92,26 @@ export function PredictionPage() {
   const [auditHasMore, setAuditHasMore] = useState(false)
   const [pageLoading, setPageLoading] = useState<string | null>(null)
   const [marketLastFetchedAt, setMarketLastFetchedAt] = useState<string | null>(null)
+  const deepLinkWarnedRef = useRef<string | null>(null)
+
+  const selectTrader = useCallback(
+    (id: string, options?: { replace?: boolean }) => {
+      setSelectedId(id)
+      setSearchParams(
+        { trader: id },
+        { replace: options?.replace ?? true }
+      )
+    },
+    [setSearchParams]
+  )
 
   const { data: sysConfig } = useSWR('system-config', getSystemConfig)
-  const liveEnabled = sysConfig?.prediction_live_enabled ?? false
+  const liveEnabled = sysConfig?.prediction_live_enabled ?? true
   const liveRedeemEnabled = sysConfig?.prediction_live_redeem_enabled ?? false
   const allowBrowserPrivateKey = sysConfig?.prediction_allow_browser_private_key ?? false
+  const serverWalletConfigured = sysConfig?.prediction_server_wallet_configured ?? false
+  const envSignatureType = sysConfig?.prediction_env_signature_type
+  const envSignatureTypeSet = sysConfig?.prediction_env_signature_type_set ?? false
 
   const { data: traders, error: tradersError, mutate: refreshTraders } = useSWR(
     'prediction-traders',
@@ -182,30 +212,65 @@ export function PredictionPage() {
   }, [liveEnabled, tradingMode])
 
   useEffect(() => {
-    if (!selectedId && traders?.[0]?.id) {
-      setSelectedId(traders[0].id)
+    if (!traders?.length) return
+
+    const fromUrl = searchParams.get('trader')
+    if (fromUrl) {
+      if (traders.some((t) => t.id === fromUrl)) {
+        if (selectedId !== fromUrl) {
+          setSelectedId(fromUrl)
+        }
+        return
+      }
+      if (deepLinkWarnedRef.current !== fromUrl) {
+        deepLinkWarnedRef.current = fromUrl
+        notify.warning('该 Trader 不在当前账户下，无法打开详情（可能属于其他用户）')
+      }
+      selectTrader(traders[0].id)
+      return
     }
-  }, [traders, selectedId])
+
+    if (!selectedId || !traders.some((t) => t.id === selectedId)) {
+      selectTrader(traders[0].id)
+    }
+  }, [traders, searchParams, selectedId, selectTrader])
 
   const buildStrategy = useCallback(() => {
     const slugs = staticSlugs
       .split(/[\n,]+/)
       .map((s) => s.trim())
       .filter(Boolean)
+    const keywords = strategyKeywords
+      .split(/[\n,]+/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+    const useFastLoop = engineMode === 'ai' || engineMode === 'rules' || engineMode === 'hybrid'
+    const rules: Record<string, unknown> = {
+      max_buy_yes_price: maxBuyYesPrice,
+      default_size_usd: defaultSizeUsd,
+      max_spread: maxSpread,
+    }
+    if (maxBuyNoPrice > 0) rules.max_buy_no_price = maxBuyNoPrice
+    if (spotSymbol.trim()) {
+      rules.spot_symbol = spotSymbol.trim()
+      rules.spot_min_change_pct = spotMinChangePct
+    }
+    if (takeProfitMid > 0) rules.take_profit_mid = takeProfitMid
+    if (sellSizeUsd > 0) rules.sell_size_usd = sellSizeUsd
     const base: Record<string, unknown> = {
       mode: engineMode,
-      fast_loop_sec: engineMode === 'rules' ? 30 : 0,
+      fast_loop_sec: useFastLoop ? fastLoopSec : 0,
       scan_interval_min: scanInterval,
       min_liquidity_usd: minLiquidityUsd,
-      rules: {
-        max_buy_yes_price: maxBuyYesPrice,
-        default_size_usd: defaultSizeUsd,
-        max_spread: maxSpread,
-      },
+      min_hours_to_expiry: minHoursToExpiry,
+      rules,
       risk: {
         max_order_usd: maxOrderUsd,
         max_daily_volume_usd: maxDailyVolumeUsd,
         max_position_market_usd: maxPositionMarketUsd,
+        max_open_markets: maxOpenMarkets,
+        min_price: minPrice,
+        max_price: maxPrice,
         min_edge_pct: minEdgePct,
         min_confidence: minConfidence,
       },
@@ -218,6 +283,7 @@ export function PredictionPage() {
         type: 'tag_search',
         tag: strategyMarketTag.trim() || 'crypto',
         limit: 20,
+        ...(keywords.length > 0 ? { keywords } : {}),
       }
     }
     return base
@@ -226,13 +292,24 @@ export function PredictionPage() {
     scanInterval,
     staticSlugs,
     strategyMarketTag,
+    strategyKeywords,
     minLiquidityUsd,
+    minHoursToExpiry,
+    fastLoopSec,
     maxBuyYesPrice,
+    maxBuyNoPrice,
     defaultSizeUsd,
     maxSpread,
+    spotSymbol,
+    spotMinChangePct,
+    takeProfitMid,
+    sellSizeUsd,
     maxOrderUsd,
     maxDailyVolumeUsd,
     maxPositionMarketUsd,
+    maxOpenMarkets,
+    minPrice,
+    maxPrice,
     minEdgePct,
     minConfidence,
   ])
@@ -258,24 +335,24 @@ export function PredictionPage() {
         notify.error('服务端未启用 Live（PREDICTION_LIVE_ENABLED）')
         return
       }
-      if (!privateKey.trim() && !allowBrowserPrivateKey) {
-        notify.error('Live 私钥须服务端配置，或开启 PREDICTION_ALLOW_BROWSER_PRIVATE_KEY（仅开发）')
+      if (!privateKey.trim() && !serverWalletConfigured) {
+        notify.error('Live 需要 Polymarket 私钥（填写或配置服务端 POLYMARKET_PRIVATE_KEY）')
         return
       }
-      if (!privateKey.trim()) {
-        notify.error('Live 模式需要填写 Polymarket 私钥')
+      if (privateKey.trim() && !allowBrowserPrivateKey) {
+        notify.error('禁止通过浏览器上传 Live 私钥（须服务端配置 POLYMARKET_PRIVATE_KEY）')
         return
       }
       if (
         !window.confirm(
-          '即将创建 Live 实盘 Trader，会使用真实 USDC 下单。确认继续？'
+          '即将创建 Live 实盘 Trader 并自动启动，AI 将周期性向 CLOB 提交真实订单。确认继续？'
         )
       ) {
         return
       }
     }
-    if (tradingMode === 'preview' && !privateKey.trim()) {
-      notify.error('Preview 模式需要私钥用于 EIP-712 签名（不会 POST 订单）')
+    if (tradingMode === 'preview' && !privateKey.trim() && !serverWalletConfigured) {
+      notify.error('Preview 模式需要私钥（浏览器填写或服务端 POLYMARKET_PRIVATE_KEY）')
       return
     }
 
@@ -288,6 +365,7 @@ export function PredictionPage() {
         preview_mode: tradingMode !== 'live',
         private_key: privateKey.trim() || undefined,
         proxy_address: proxyAddress.trim() || undefined,
+        signature_type: signatureType,
         sim_config: {
           initial_balance_usd: simBalance,
           slippage_bps: simSlippageBps > 0 ? simSlippageBps : undefined,
@@ -296,9 +374,19 @@ export function PredictionPage() {
         strategy: buildStrategy(),
       })
       await refreshTraders()
-      setSelectedId(created.id)
+      selectTrader(created.id)
       setPrivateKey('')
-      notify.success(`Trader「${created.name}」已创建`)
+      if (tradingMode === 'live') {
+        try {
+          await predictionApi.startTrader(created.id)
+          await refreshTraders()
+          notify.success(`Trader「${created.name}」已创建并启动，AI 将自动 CLOB 下单`)
+        } catch (startErr) {
+          notify.warning(`Trader 已创建，但启动失败：${startErr}`)
+        }
+      } else {
+        notify.success(`Trader「${created.name}」已创建`)
+      }
     } catch (e) {
       notify.error(String(e))
     } finally {
@@ -309,17 +397,29 @@ export function PredictionPage() {
   const applyStrategyFromDetail = (strat: Record<string, unknown> | undefined) => {
     if (!strat) return
     if (strat.mode) setEngineMode(strat.mode as 'ai' | 'rules' | 'hybrid')
+    if (typeof strat.fast_loop_sec === 'number') setFastLoopSec(strat.fast_loop_sec)
+    if (typeof strat.min_hours_to_expiry === 'number') {
+      setMinHoursToExpiry(strat.min_hours_to_expiry)
+    }
     const slugs = (strat.static_slugs as string[] | undefined) ?? []
     setStaticSlugs(slugs.join('\n'))
-    const ms = strat.market_source as { tag?: string } | undefined
+    const ms = strat.market_source as { tag?: string; keywords?: string[] } | undefined
     if (ms?.tag) setStrategyMarketTag(ms.tag)
+    if (ms?.keywords?.length) setStrategyKeywords(ms.keywords.join(', '))
     if (typeof strat.min_liquidity_usd === 'number') {
       setMinLiquidityUsd(strat.min_liquidity_usd)
     }
-    const rules = (strat.rules as Record<string, number> | undefined) ?? {}
-    if (rules.max_buy_yes_price != null) setMaxBuyYesPrice(rules.max_buy_yes_price)
-    if (rules.default_size_usd != null) setDefaultSizeUsd(rules.default_size_usd)
-    if (rules.max_spread != null) setMaxSpread(rules.max_spread)
+    const rules = (strat.rules as Record<string, number | string> | undefined) ?? {}
+    if (rules.max_buy_yes_price != null) setMaxBuyYesPrice(Number(rules.max_buy_yes_price))
+    if (rules.max_buy_no_price != null) setMaxBuyNoPrice(Number(rules.max_buy_no_price))
+    if (rules.default_size_usd != null) setDefaultSizeUsd(Number(rules.default_size_usd))
+    if (rules.max_spread != null) setMaxSpread(Number(rules.max_spread))
+    if (rules.spot_symbol != null) setSpotSymbol(String(rules.spot_symbol))
+    if (rules.spot_min_change_pct != null) {
+      setSpotMinChangePct(Number(rules.spot_min_change_pct))
+    }
+    if (rules.take_profit_mid != null) setTakeProfitMid(Number(rules.take_profit_mid))
+    if (rules.sell_size_usd != null) setSellSizeUsd(Number(rules.sell_size_usd))
     const risk = (strat.risk as Record<string, number> | undefined) ?? {}
     const rv = (snake: string, pascal: string) => risk[snake] ?? risk[pascal]
     if (rv('max_order_usd', 'MaxOrderUsd') != null) {
@@ -330,6 +430,15 @@ export function PredictionPage() {
     }
     if (rv('max_position_market_usd', 'MaxPositionMarketUsd') != null) {
       setMaxPositionMarketUsd(rv('max_position_market_usd', 'MaxPositionMarketUsd')!)
+    }
+    if (rv('max_open_markets', 'MaxOpenMarkets') != null) {
+      setMaxOpenMarkets(rv('max_open_markets', 'MaxOpenMarkets')!)
+    }
+    if (rv('min_price', 'MinPrice') != null) {
+      setMinPrice(rv('min_price', 'MinPrice')!)
+    }
+    if (rv('max_price', 'MaxPrice') != null) {
+      setMaxPrice(rv('max_price', 'MaxPrice')!)
     }
     if (rv('min_edge_pct', 'MinEdgePct') != null) {
       setMinEdgePct(rv('min_edge_pct', 'MinEdgePct')!)
@@ -348,6 +457,9 @@ export function PredictionPage() {
       setNewModelId(detail.ai_model_id)
       setTradingMode(detail.trading_mode)
       setProxyAddress(detail.proxy_address ?? '')
+      setSignatureType(
+        typeof detail.signature_type === 'number' ? detail.signature_type : 2
+      )
       setScanInterval(detail.scan_interval_minutes ?? 5)
       setSimBalance(detail.sim_config?.initial_balance_usd ?? 10000)
       setSimSlippageBps(detail.sim_config?.slippage_bps ?? 0)
@@ -365,8 +477,8 @@ export function PredictionPage() {
         notify.error('服务端未启用 Live（PREDICTION_LIVE_ENABLED）')
         return
       }
-      if (!privateKey.trim() && !editHasPrivateKey) {
-        notify.error('Live 模式需要配置 Polymarket 私钥')
+      if (!privateKey.trim() && !editHasPrivateKey && !serverWalletConfigured) {
+        notify.error('Live 模式需要配置 Polymarket 私钥（或服务端 POLYMARKET_PRIVATE_KEY）')
         return
       }
       if (privateKey.trim() && !allowBrowserPrivateKey) {
@@ -385,6 +497,7 @@ export function PredictionPage() {
         trading_mode: tradingMode,
         preview_mode: tradingMode !== 'live',
         proxy_address: proxyAddress.trim() || undefined,
+        signature_type: signatureType,
         private_key: privateKey.trim() || undefined,
         scan_interval_minutes: scanInterval,
         sim_config:
@@ -459,6 +572,50 @@ export function PredictionPage() {
       notify.success(next ? '已在竞赛页显示' : '已从竞赛页隐藏')
     } catch (e) {
       notify.error(String(e))
+    }
+  }
+
+  const handleSellPosition = async (
+    trader: PredictionTraderInfo,
+    tokenId: string,
+    marketSlug: string,
+    shares: number,
+    midPrice?: number
+  ) => {
+    const tLive = isTraderLive(trader)
+    if (tLive && !liveEnabled) {
+      notify.error('服务端未启用 Live 交易')
+      return
+    }
+    const mark = midPrice && midPrice > 0 ? midPrice : undefined
+    const estUsd = mark ? shares * mark : undefined
+    const confirmMsg = tLive
+      ? `Live 卖出 ${marketSlug} 约 ${shares.toFixed(2)} 份${estUsd ? ` (~$${estUsd.toFixed(2)})` : ''}，确认？`
+      : `卖出 ${marketSlug} 全部持仓 (${shares.toFixed(2)} 份)？`
+    if (!window.confirm(confirmMsg)) return
+
+    const actionKey = `${trader.id}:sell:${tokenId}`
+    if (actionLoading) return
+    setActionLoading(actionKey)
+    try {
+      const { execution } = await predictionApi.sellPosition(trader.id, {
+        token_id: tokenId,
+        size_usd: 0,
+      })
+      if (execution.status === 'filled') {
+        notify.success(`卖出成交 $${(execution.fill_usd ?? 0).toFixed(2)}`)
+      } else if (execution.status === 'risk_blocked') {
+        notify.error(`风控拦截: ${execution.message ?? ''}`)
+      } else if (execution.status === 'posted' || execution.status === 'preview') {
+        notify.success(execution.message ?? execution.status)
+      } else {
+        notify.error(execution.message ?? execution.status)
+      }
+      await refreshAll()
+    } catch (e) {
+      notify.error(String(e))
+    } finally {
+      setActionLoading(null)
     }
   }
 
@@ -799,19 +956,38 @@ export function PredictionPage() {
               )}
               {tradingMode === 'live' && !allowBrowserPrivateKey && (
                 <p className="text-sm text-amber-400 sm:col-span-2">
-                  Live 私钥禁止通过浏览器上传，请由运维在服务端配置（或开发环境设置
-                  PREDICTION_ALLOW_BROWSER_PRIVATE_KEY=true）。
+                  {serverWalletConfigured
+                    ? 'Live 将使用服务端 POLYMARKET_PRIVATE_KEY 自动 CLOB 下单。'
+                    : 'Live 私钥禁止通过浏览器上传，请在服务端配置 POLYMARKET_PRIVATE_KEY（或开发环境设置 PREDICTION_ALLOW_BROWSER_PRIVATE_KEY=true）。'}
                   {formMode === 'edit' && editHasPrivateKey && ' 当前 Trader 已配置私钥。'}
                 </p>
               )}
               <label className="text-sm text-zinc-400 block sm:col-span-2">
-                Proxy 地址 (可选)
+                Proxy 地址
                 <input
-                  placeholder="Polymarket proxy wallet"
+                  placeholder="Polymarket proxy / funder（网页注册用户必填）"
                   className="block mt-1 w-full rounded bg-zinc-800 border border-zinc-700 px-3 py-2 text-white font-mono text-xs"
                   value={proxyAddress}
                   onChange={(e) => setProxyAddress(e.target.value)}
                 />
+              </label>
+              <label className="text-sm text-zinc-400 block sm:col-span-2">
+                CLOB 签名类型 (signature_type)
+                <select
+                  className="block mt-1 w-full rounded bg-zinc-800 border border-zinc-700 px-3 py-2 text-white"
+                  value={signatureType}
+                  onChange={(e) => setSignatureType(Number(e.target.value))}
+                >
+                  <option value={0}>0 — EOA（私钥即资金地址）</option>
+                  <option value={1}>1 — Magic / Email Proxy</option>
+                  <option value={2}>2 — Safe / Gnosis Proxy（Polymarket 默认）</option>
+                  <option value={3}>3 — Deposit 钱包</option>
+                </select>
+                <span className="text-xs text-zinc-500 mt-1 block">
+                  网页注册 Polymarket 账户通常选 2，并填写 Proxy 地址。
+                  {envSignatureTypeSet &&
+                    ` 服务端默认 POLYMARKET_SIGNATURE_TYPE=${envSignatureType}（新建未指定时生效）。`}
+                </span>
               </label>
             </>
           )}
@@ -824,6 +1000,28 @@ export function PredictionPage() {
               onChange={(e) => setStrategyMarketTag(e.target.value)}
             />
           </label>
+          <label className="text-sm text-zinc-400 block lg:col-span-2">
+            策略关键词（逗号分隔，过滤 tag 搜索结果）
+            <input
+              className="block mt-1 w-full rounded bg-zinc-800 border border-zinc-700 px-3 py-2 text-white"
+              placeholder="up or down, bitcoin"
+              value={strategyKeywords}
+              onChange={(e) => setStrategyKeywords(e.target.value)}
+            />
+          </label>
+          {(engineMode === 'ai' || engineMode === 'rules' || engineMode === 'hybrid') && (
+            <label className="text-sm text-zinc-400 block">
+              {engineMode === 'ai' ? 'AI 周期间隔 (秒，FastLoop)' : 'FastLoop 间隔 (秒)'}
+              <input
+                type="number"
+                min={5}
+                max={300}
+                className="block mt-1 w-full rounded bg-zinc-800 border border-zinc-700 px-3 py-2 text-white"
+                value={fastLoopSec}
+                onChange={(e) => setFastLoopSec(Number(e.target.value) || 30)}
+              />
+            </label>
+          )}
           <label className="text-sm text-zinc-400 block lg:col-span-3">
             静态市场 slug（每行一个，留空则用 tag 搜索）
             <textarea
@@ -851,6 +1049,18 @@ export function PredictionPage() {
               />
             </label>
             <label className="text-sm text-zinc-400 block">
+              NO 买入价上限 (0=禁用)
+              <input
+                type="number"
+                min={0}
+                max={0.99}
+                step={0.01}
+                className="block mt-1 w-full rounded bg-zinc-800 border border-zinc-700 px-3 py-2 text-white"
+                value={maxBuyNoPrice}
+                onChange={(e) => setMaxBuyNoPrice(Number(e.target.value) || 0)}
+              />
+            </label>
+            <label className="text-sm text-zinc-400 block">
               默认下单 USDC
               <input
                 type="number"
@@ -874,6 +1084,29 @@ export function PredictionPage() {
               />
             </label>
             <label className="text-sm text-zinc-400 block">
+              止盈 mid (0=关)
+              <input
+                type="number"
+                min={0}
+                max={0.99}
+                step={0.01}
+                className="block mt-1 w-full rounded bg-zinc-800 border border-zinc-700 px-3 py-2 text-white"
+                value={takeProfitMid}
+                onChange={(e) => setTakeProfitMid(Number(e.target.value) || 0)}
+              />
+            </label>
+            <label className="text-sm text-zinc-400 block">
+              卖出 USDC (0=全仓)
+              <input
+                type="number"
+                min={0}
+                step={1}
+                className="block mt-1 w-full rounded bg-zinc-800 border border-zinc-700 px-3 py-2 text-white"
+                value={sellSizeUsd}
+                onChange={(e) => setSellSizeUsd(Number(e.target.value) || 0)}
+              />
+            </label>
+            <label className="text-sm text-zinc-400 block">
               最低流动性 USDC
               <input
                 type="number"
@@ -882,6 +1115,38 @@ export function PredictionPage() {
                 className="block mt-1 w-full rounded bg-zinc-800 border border-zinc-700 px-3 py-2 text-white"
                 value={minLiquidityUsd}
                 onChange={(e) => setMinLiquidityUsd(Number(e.target.value) || 500)}
+              />
+            </label>
+            <label className="text-sm text-zinc-400 block">
+              距结算最少 (小时)
+              <input
+                type="number"
+                min={0}
+                step={0.05}
+                className="block mt-1 w-full rounded bg-zinc-800 border border-zinc-700 px-3 py-2 text-white"
+                value={minHoursToExpiry}
+                onChange={(e) => setMinHoursToExpiry(Number(e.target.value) || 0)}
+              />
+            </label>
+            <label className="text-sm text-zinc-400 block">
+              Spot 符号 (规则/AI，如 BTC)
+              <input
+                className="block mt-1 w-full rounded bg-zinc-800 border border-zinc-700 px-3 py-2 text-white font-mono text-xs"
+                placeholder="留空禁用"
+                value={spotSymbol}
+                onChange={(e) => setSpotSymbol(e.target.value)}
+              />
+            </label>
+            <label className="text-sm text-zinc-400 block">
+              Spot 5m 最小变动 (%)
+              <input
+                type="number"
+                min={0}
+                step={0.05}
+                title="up/down 市场规则：YES 需 5m 涨幅 ≥ 此值，NO 需 ≤ 负值"
+                className="block mt-1 w-full rounded bg-zinc-800 border border-zinc-700 px-3 py-2 text-white"
+                value={spotMinChangePct}
+                onChange={(e) => setSpotMinChangePct(Number(e.target.value) || 0)}
               />
             </label>
             <label className="text-sm text-zinc-400 block">
@@ -942,6 +1207,41 @@ export function PredictionPage() {
                 onChange={(e) => setMinConfidence(Number(e.target.value) || 70)}
               />
             </label>
+            <label className="text-sm text-zinc-400 block">
+              最大持仓市场数
+              <input
+                type="number"
+                min={1}
+                step={1}
+                className="block mt-1 w-full rounded bg-zinc-800 border border-zinc-700 px-3 py-2 text-white"
+                value={maxOpenMarkets}
+                onChange={(e) => setMaxOpenMarkets(Number(e.target.value) || 10)}
+              />
+            </label>
+            <label className="text-sm text-zinc-400 block">
+              价格下限
+              <input
+                type="number"
+                min={0.01}
+                max={0.99}
+                step={0.01}
+                className="block mt-1 w-full rounded bg-zinc-800 border border-zinc-700 px-3 py-2 text-white"
+                value={minPrice}
+                onChange={(e) => setMinPrice(Number(e.target.value) || 0.05)}
+              />
+            </label>
+            <label className="text-sm text-zinc-400 block">
+              价格上限
+              <input
+                type="number"
+                min={0.01}
+                max={0.99}
+                step={0.01}
+                className="block mt-1 w-full rounded bg-zinc-800 border border-zinc-700 px-3 py-2 text-white"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(Number(e.target.value) || 0.95)}
+              />
+            </label>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -982,7 +1282,7 @@ export function PredictionPage() {
           activeId={activeId}
           actionLoading={actionLoading}
           liveEnabled={liveEnabled}
-          onSelect={setSelectedId}
+          onSelect={selectTrader}
           onEdit={openEdit}
           onAction={runAction}
           onToggleCompetition={handleToggleCompetition}
@@ -1162,11 +1462,33 @@ export function PredictionPage() {
                   <ul className="space-y-3 text-sm">
                     {positions.positions.map((p) => (
                       <li key={p.token_id} className="border-b border-zinc-800/60 pb-2 last:border-0">
-                        <div className="text-zinc-300">
-                          {p.market_slug} [{p.outcome}] {p.shares.toFixed(2)} @{' '}
-                          {p.avg_cost.toFixed(3)}
-                          {p.mid_price != null && (
-                            <span className="text-zinc-500"> · mid {p.mid_price.toFixed(3)}</span>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="text-zinc-300 min-w-0">
+                            {p.market_slug} [{p.outcome}] {p.shares.toFixed(2)} @{' '}
+                            {p.avg_cost.toFixed(3)}
+                            {p.mid_price != null && (
+                              <span className="text-zinc-500"> · mid {p.mid_price.toFixed(3)}</span>
+                            )}
+                          </div>
+                          {p.shares > 0 && (
+                            <button
+                              type="button"
+                              disabled={!!actionLoading}
+                              className="shrink-0 text-xs px-2 py-0.5 rounded bg-amber-900/40 text-amber-200 disabled:opacity-50"
+                              onClick={() =>
+                                handleSellPosition(
+                                  selected,
+                                  p.token_id,
+                                  p.market_slug,
+                                  p.shares,
+                                  p.mid_price
+                                )
+                              }
+                            >
+                              {actionLoading === `${selected.id}:sell:${p.token_id}`
+                                ? '…'
+                                : '卖出'}
+                            </button>
                           )}
                         </div>
                         <PredictionReasoningHint
@@ -1184,7 +1506,7 @@ export function PredictionPage() {
                       </li>
                     )}
                   </ul>
-                  {!isSimulation && !isLive && (
+                  {(!isSimulation && (!isLive || liveRedeemEnabled)) && (
                     <button
                       type="button"
                       disabled={!!actionLoading}

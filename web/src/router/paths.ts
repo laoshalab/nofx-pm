@@ -4,7 +4,6 @@ export type Page =
   | 'traders'
   | 'trader'
   | 'strategy'
-  | 'strategy-market'
   | 'prediction'
   | 'data'
   | 'faq'
@@ -26,7 +25,6 @@ export const ROUTES = {
   traders: '/traders',
   dashboard: '/dashboard',
   strategy: '/strategy',
-  strategyMarket: '/strategy-market',
   prediction: '/prediction',
 } as const
 
@@ -36,7 +34,6 @@ export const PAGE_PATHS: Record<Page, string> = {
   traders: ROUTES.traders,
   trader: ROUTES.dashboard,
   strategy: ROUTES.strategy,
-  'strategy-market': ROUTES.strategyMarket,
   prediction: ROUTES.prediction,
   data: ROUTES.data,
   faq: ROUTES.faq,
@@ -51,7 +48,7 @@ export const LEGACY_HASH_ROUTES: Record<string, string> = {
   trader: ROUTES.dashboard,
   details: ROUTES.dashboard,
   strategy: ROUTES.strategy,
-  'strategy-market': ROUTES.strategyMarket,
+  'strategy-market': ROUTES.agent,
   prediction: ROUTES.prediction,
   data: ROUTES.data,
 }
@@ -67,8 +64,6 @@ export function getCurrentPageForPath(pathname: string): Page | undefined {
       return 'trader'
     case ROUTES.strategy:
       return 'strategy'
-    case ROUTES.strategyMarket:
-      return 'strategy-market'
     case ROUTES.prediction:
       return 'prediction'
     case ROUTES.data:
@@ -92,4 +87,12 @@ export function buildDashboardPath(traderSlug?: string): string {
   }
 
   return `${ROUTES.dashboard}?trader=${encodeURIComponent(traderSlug)}`
+}
+
+export function buildPredictionPath(traderId?: string): string {
+  if (!traderId) {
+    return ROUTES.prediction
+  }
+
+  return `${ROUTES.prediction}?trader=${encodeURIComponent(traderId)}`
 }

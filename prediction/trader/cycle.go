@@ -115,10 +115,6 @@ func (pt *PredictionTrader) runFastLoop(intervalSec int) {
 		case <-pt.stopCh:
 			return
 		case <-ticker.C:
-			mode := pt.effectiveMode()
-			if mode != config.ModeRules && mode != config.ModeHybrid {
-				return
-			}
 			if _, err := pt.runCycle(); err != nil {
 				pt.logWarnf("fast-loop error: %v", err)
 			}

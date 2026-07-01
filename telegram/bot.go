@@ -4,9 +4,11 @@ import (
 	"nofx/api"
 	"nofx/config"
 	"nofx/logger"
+	"nofx/manager"
 	"nofx/mcp"
 	_ "nofx/mcp/payment"
 	_ "nofx/mcp/provider"
+	predtrader "nofx/prediction/trader"
 	"nofx/store"
 	"nofx/telegram/agent"
 	"os"
@@ -20,7 +22,7 @@ import (
 // Start initializes and runs the Telegram bot in a blocking supervisor loop.
 // Supports hot-reload: when a signal is sent on reloadCh, the bot restarts
 // with the latest token (re-read from DB or env). Must be called as a goroutine from main.go.
-func Start(cfg *config.Config, st *store.Store, reloadCh <-chan struct{}) {
+func Start(cfg *config.Config, st *store.Store, pm *manager.PredictionManager, reloadCh <-chan struct{}) {
 	for {
 		token := resolveToken(cfg, st)
 		if token == "" {
@@ -29,7 +31,7 @@ func Start(cfg *config.Config, st *store.Store, reloadCh <-chan struct{}) {
 			continue
 		}
 
-		stopped := runBot(token, cfg, st)
+		stopped := runBot(token, cfg, st, pm)
 		if !stopped {
 			return
 		}
@@ -51,7 +53,7 @@ func resolveToken(cfg *config.Config, st *store.Store) string {
 }
 
 // runBot runs the bot until the updates channel closes (clean stop → true) or a fatal error (false).
-func runBot(token string, cfg *config.Config, st *store.Store) bool {
+func runBot(token string, cfg *config.Config, st *store.Store, pm *manager.PredictionManager) bool {
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		logger.Errorf("Telegram bot failed to start: %v", err)
@@ -59,11 +61,16 @@ func runBot(token string, cfg *config.Config, st *store.Store) bool {
 	}
 	logger.Infof("Telegram bot @%s started", bot.Self.UserName)
 
+	predtrader.TelegramNotify = SendMarkdown
+
 	// Allowed chat ID: read from DB binding (0 = unbound, first /start will bind).
 	allowedChatID := int64(0)
 	if id, err := st.TelegramConfig().GetBoundChatID(); err == nil && id != 0 {
 		allowedChatID = id
 	}
+	RegisterMessenger(allowedChatID, func(chatID int64, text string) {
+		sendMarkdownMsg(bot, chatID, text)
+	})
 
 	// botUserID / botToken / agents are resolved lazily and refresh when user registers.
 	var (
@@ -146,6 +153,10 @@ func runBot(token string, cfg *config.Config, st *store.Store) bool {
 					continue
 				}
 				allowedChatID = chatID
+				UpdateBoundChat(chatID)
+				RegisterMessenger(allowedChatID, func(chatID int64, text string) {
+					sendMarkdownMsg(bot, chatID, text)
+				})
 				logger.Infof("Telegram bound to @%s (chatID: %d)", username, chatID)
 			} else if chatID != allowedChatID {
 				sendMsg(bot, chatID, "This bot is already bound to another account.")
@@ -181,6 +192,26 @@ func runBot(token string, cfg *config.Config, st *store.Store) bool {
 			sendMsg(bot, chatID, "Send /start first.")
 			continue
 		}
+
+		// ── Prediction market commands ───────────────────────────────────────
+		if strings.HasPrefix(text, "/prediction") {
+			resolveBotUser()
+			if botUserID == "" {
+				sendMsg(bot, chatID, "No account found. Open the web dashboard to register.")
+				continue
+			}
+			lang := st.TelegramConfig().GetLanguage()
+			switch text {
+			case "/prediction", "/prediction_status":
+				sendMarkdownMsg(bot, chatID, predictionStatusMsg(st, pm, botUserID, lang))
+			case "/prediction_positions":
+				sendMarkdownMsg(bot, chatID, predictionPositionsMsg(st, botUserID, lang))
+			default:
+				sendMarkdownMsg(bot, chatID, predictionHelpMsg(lang))
+			}
+			continue
+		}
+
 		if text == "" {
 			continue
 		}
@@ -432,6 +463,10 @@ func helpMsg(lang string) string {
 • "暂停交易员"
 • "停止所有交易"
 
+*预测市场*
+/prediction — Trader 状态
+/prediction\\_positions — YES/NO 持仓
+
 *命令*
 /start — 刷新状态
 /lang  — 切换语言
@@ -452,6 +487,10 @@ func helpMsg(lang string) string {
 • "Start trader"
 • "Stop trader"
 • "Stop all trading"
+
+*Prediction*
+/prediction — trader status
+/prediction\\_positions — YES/NO holdings
 
 *Commands*
 /start — refresh status
